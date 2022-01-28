@@ -1,0 +1,77 @@
+<?php if (!defined('BASEPATH')) {
+	exit('No direct script access allowed');
+}
+
+/**
+ * File Name: Dashboard.php
+ * ----------------------------------------------------------------------------------------------------
+ * Purpose of this file:
+ * To manage data to display in admin dashboard page
+ * ----------------------------------------------------------------------------------------------------
+ * System Name: Online Research Journal System
+ * ----------------------------------------------------------------------------------------------------
+ * Author: Gerard Paul D. Balde
+ * ----------------------------------------------------------------------------------------------------
+ * Date of revision: Sep 26, 2019
+ * ----------------------------------------------------------------------------------------------------
+ * Copyright Notice:
+ * Copyright (C) 2018 by the Department of Science and Technology - National Research Council of the Philiipines
+ */
+
+
+
+class Feedback extends EJ_Controller {
+
+	public function __construct() {
+		parent::__construct();
+
+		$this->load->model('Feedback_model');
+		$this->load->model('Log_model');
+		$this->load->model('User_model');
+		$this->load->helper('is_online_helper');
+    }
+
+    /**
+     * Verify if feedback was submitted already
+     *
+     * @param [type] $id
+     * @return void
+     */
+    public function verify($id){
+        $output = $this->Feedback_model->verify($id);
+        echo $output;
+    }
+
+    /**
+     * Submit feedback
+     *
+     * @param [type] $sys
+     * @return void
+     */
+    public function submit($sys){
+
+        $CI =& get_instance();
+        $oprs = $CI->load->database('dboprs', TRUE);
+
+        $tableName = 'tblfeedbacks';
+		$result = $oprs->list_fields($tableName);
+		$post = array();
+
+		foreach ($result as $i => $field) {
+            if($field == 'fb_usr_id'){
+                $post[$field] = (empty(_UserIdFromSession())) ? $this->input->post($field, TRUE) : _UserIdFromSession();
+                // $id = (empty(_UserIdFromSession())) ? $this->input->post($field, TRUE) : _UserIdFromSession();
+            }else{
+                $post[$field] = $this->input->post($field, TRUE);
+            }
+		   
+        }
+        $post['fb_system'] = $sys; // 1-ejournal 2-oprs 3-client
+        $post['date_created'] = date('Y-m-d H:i:s');
+
+        $this->Feedback_model->save_feedback(array_filter($post));
+        // save_log_ej($id, 'submitted UI/UX feedback.',  $this->db->insert_id());
+    }
+}
+
+/* End of file Feedback.php */
