@@ -67,7 +67,7 @@ class Email extends OPRS_Controller {
 			$notif_sent = $val->rev_notif_status;
 			$r_days = (int)$daysleft;
 
-			if ($r_days > 0 && $r_days < 7 && $notif_sent == 0) {
+			if ($r_days > 1 && $r_days < 7 && $notif_sent == 0) {
 				// send notif if 5 days left and notif not sent yet
 				$this->email_notification_content_review($val->rev_email, $val->rev_man_id, $val->rev_id, $r_days);
 				// $post['rev_notif_status'] = 1;
