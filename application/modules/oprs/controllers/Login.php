@@ -409,7 +409,7 @@ class Login extends OPRS_Controller {
 		// get manuscript info
 		$manus_info = $this->Manuscript_model->get_manus_for_email($man_id);
 		foreach ($manus_info as $key => $val) {
-			// $man_pdf = $val->man_file;
+			$man_pdf = $val->man_file;
 			$man_word = $val->man_word;
 		}
 
@@ -440,7 +440,9 @@ class Login extends OPRS_Controller {
 		$mail->AddAddress($email);
 		$nda = '/var/www/html/ejournal/assets/oprs/uploads/SAMPLE_NDA_NRCP.doc';
 		$mail->addAttachment($nda);
-		$pdf = '/var/www/html/ejournal/assets/oprs/uploads/manuscriptsdoc/' . $man_word;
+		$word = '/var/www/html/ejournal/assets/oprs/uploads/manuscriptsdoc/' . $man_word;
+		$mail->addAttachment($word);
+		$pdf = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/' . $man_pdf;
 		$mail->addAttachment($pdf);
 		$mail->Subject = "Thank you for accepting";
 
