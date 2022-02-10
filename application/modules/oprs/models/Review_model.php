@@ -46,6 +46,11 @@ class Review_model extends CI_Model {
 		save_log_oprs(_UserIdFromSession(), 'reviewed', $flag, 5);
 	}
 
+	public function update_score_lapse($post, $where) {
+		$oprs = $this->load->database('dboprs', TRUE);
+		$oprs->update($this->scores, $post, $where);
+	}
+
 	/**
 	 * Save review of the reviewer
 	 *

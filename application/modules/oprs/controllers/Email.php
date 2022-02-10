@@ -65,7 +65,7 @@ class Email extends OPRS_Controller {
 			$timeleft = $future - strtotime(date('Y-m-d H:i:s'));
 			$daysleft = ((($timeleft / 24) / 60) / 60);
 			$notif_sent = $val->rev_notif_status;
-			$r_days = (int)$daysleft;
+			$r_days = (int)$daysleft + 1;
 
 			if ($r_days > 1 && $r_days < 7 && $notif_sent == 0) {
 				// send notif if 5 days left and notif not sent yet
@@ -84,10 +84,10 @@ class Email extends OPRS_Controller {
 				$post['usr_status'] = 2;
 				$where['row_id'] = $val->row_id;
 				$this->User_model->disable_reviewer(array_filter($post), $where);
-				$post_scr['scr_man_id'] = $val->rev_man_id;
-				$post_scr['scr_man_rev_id'] = $val->rev_id;
+				$where_lapsed['scr_man_id'] = $val->rev_man_id;
+				$where_lapsed['scr_man_rev_id'] = $val->rev_id;
 				$post_scr['scr_status'] = 3;
-				$this->Review_model->save_review(array_filter($post_scr));
+				$this->Review_model->update_score_lapse(array_filter($post_scr), $where_lapsed);
 				$this->email_lapsed($val->rev_email, $val->rev_man_id, $val->rev_id);
 			} 
 		}
@@ -189,7 +189,7 @@ class Email extends OPRS_Controller {
 			'Managing Editor<br/>'.
 			'NRCP Research Journal<br/><br/>'.
 			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Request for Manuscript Review (".$r_days." day(s) left)";
+		$mail->Subject = "NRCP Journal Publication : Request for Manuscript Review (".$r_days." day/s left)";
 		$mail->Body = $htmlBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
@@ -296,7 +296,7 @@ class Email extends OPRS_Controller {
 			$dear .
 			'May we remind you of your Review on the manuscript <em>"' . $man_title . '"</em> ' .
 			'which is being considered for publication in the NRCP Research Journal. Given the deadline set, may we expect the '. 
-			'accomplished evaluation/score sheet within the next '.$r_days.' days?  <br/><br/>' .
+			'accomplished evaluation/score sheet within the next '.$r_days.' day/s?  <br/><br/>' .
 
 			'In case we do not hear from you, we shall automatically render your username and password deactivated. <br/>' .
 
@@ -306,7 +306,7 @@ class Email extends OPRS_Controller {
 			'Managing Editor<br/>'. 
 			'NRCP Research Journal <br/><br/>' .
 			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Manuscript Review (".$r_days." day left)";
+		$mail->Subject = "NRCP Journal Publication : Manuscript Review (".$r_days." day/s left)";
 		$mail->Body = $htmlBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([

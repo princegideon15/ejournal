@@ -456,7 +456,11 @@ class Login extends OPRS_Controller {
 		
 		'Click <a href="' . $link .'" target="_blank">' . $link .'</a> to login. <br/><br/><br/>'.
 
-		'Please see attached full manuscript and NDA.' .
+		'Full text manuscript in PDF and Evaluation form will appear upon clicking "Start Review" button when you logged in. <br/><br/>' .
+
+
+		'Please see attached NDA and Full text manuscript.<br/><br/>'.
+
 
 		'Thank you. <br/><br/>
 

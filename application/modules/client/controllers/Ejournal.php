@@ -40,6 +40,7 @@ class Ejournal extends EJ_Controller {
 	 */
 	public function index() {
 
+	
 		$data['main_title'] = "eJournal";
 		$data['country'] = $this->Library_model->get_library('tblcountries');
 		$data['main_content'] = "client/journal";
