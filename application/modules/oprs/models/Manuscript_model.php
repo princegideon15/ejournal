@@ -475,6 +475,7 @@ class Manuscript_model extends CI_Model {
 		$oprs->where('scr_status', 4);
 		$oprs->or_where('scr_status', 5);
 		$oprs->or_where('scr_status', 6);
+		$oprs->or_where('scr_status', 7);
 		$oprs->group_end();
 		$query = $oprs->get();
 		return $query->result();;
@@ -533,7 +534,7 @@ class Manuscript_model extends CI_Model {
 		$oprs->from($this->reviewers . ' r');
 		$oprs->join($this->scores . ' s', 'r.rev_id = s.scr_man_rev_id');
 		$oprs->where('r.rev_status', 1);
-		$oprs->where('s.scr_status ==', 2);
+		$oprs->where('s.scr_status', 2);
 		$query = $oprs->get();
 		return $query->result();
 	}
@@ -789,10 +790,10 @@ class Manuscript_model extends CI_Model {
 	 */
 	public function get_completed_reviews() {
 		$oprs = $this->load->database('dboprs', TRUE);
-		$oprs->select('m.*, s.scr_man_rev_id, s.scr_status, count(scr_crt_1) as score, s.scr_total, max(date_reviewed) as date_reviewed , m.man_title as mantitle');
+		$oprs->select('m.*, s.scr_man_rev_id, s.scr_status, count(scr_status) as score, s.scr_total, max(date_reviewed) as date_reviewed , m.man_title as mantitle');
 		$oprs->from($this->manus . ' m');
 		$oprs->join($this->scores . ' s', 'm.row_id = s.scr_man_id');
-		$oprs->where('s.scr_crt_1 >', 0);
+		$oprs->where('s.scr_status >', 3);
 		$oprs->group_by('m.row_id');
 		$oprs->having('count(score) >', 2);
 		$oprs->order_by('m.man_title', 'asc');
@@ -930,6 +931,11 @@ class Manuscript_model extends CI_Model {
 		$skms->where('pp_usr_id', $id);
 		$query = $skms->get();
 		return $query->result();
+	}
+
+	public function update_remarks($post, $where) {
+		$oprs = $this->load->database('dboprs', TRUE);
+		$oprs->update($this->manus, $post, $where);
 	}
 }
 

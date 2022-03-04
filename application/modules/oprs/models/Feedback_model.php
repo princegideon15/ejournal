@@ -132,7 +132,7 @@ class Feedback_model extends CI_Model {
 		$CI =& get_instance();
         $oprs = $CI->load->database('dboprs', TRUE);
 
-		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ui = 1 THEN "Happy" WHEN fb_rate_ui = 2 THEN "Neutral" else "Sad" end) as label');
+		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ui = 1 THEN "Sad" WHEN fb_rate_ui = 2 THEN "Neutral" else "Happy" end) as label');
 		$oprs->from($this->feedbacks);
 		$oprs->group_by($this->feedbacks.'.fb_rate_ui');
 		$query = $oprs->get();
@@ -143,7 +143,7 @@ class Feedback_model extends CI_Model {
 		$CI =& get_instance();
         $oprs = $CI->load->database('dboprs', TRUE);
 
-		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ux = 1 THEN "Happy" WHEN fb_rate_ux = 2 THEN "Neutral" else "Sad" end) as label');
+		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ux = 1 THEN "Sad" WHEN fb_rate_ux = 2 THEN "Neutral" else "Happy" end) as label');
 		$oprs->from($this->feedbacks);
 		$oprs->group_by($this->feedbacks.'.fb_rate_ux');
 		$query = $oprs->get();

@@ -329,8 +329,15 @@ class Manuscripts extends OPRS_Controller {
 			$author = $row->man_author;
 			$affiliation = $row->man_affiliation;
 			$abs = $row->man_abs;
+			$author_mail = $row->man_email;
+			$status = $row->man_status;
 			$date_avail = date_format(new DateTime($row->man_date_available), 'F j, Y, g:i a');
 			$post['man_status'] = ($row->man_status == 3) ? 3 : 2;
+		}
+
+		if($status == 1){
+			// send email on-review
+			$this->notify_author_on_review($id);
 		}
 
 		// update manuscript status
@@ -1243,6 +1250,7 @@ class Manuscripts extends OPRS_Controller {
 			$dear = 'Dear ' . $val->man_author_title . ' ' . $value->man_author . '<br/><br/>';
 			$email = $value->man_email;
 		}
+
 		$nameuser = 'eJournal Admin';
 		$usergmail = 'nrcp.ejournal@gmail.com';
 		$password = '<<NRCP!!ejournal>>';
@@ -1278,6 +1286,66 @@ class Manuscripts extends OPRS_Controller {
 	
 		// email content
 		$mail->Subject = "NRCP Journal Publication : Manuscript Review Result";
+		$mail->Body = $htmlBody;
+		$mail->IsHTML(true);
+		$mail->smtpConnect([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+				'allow_self_signed' => true,
+			],
+		]);
+		if (!$mail->Send()) {
+			echo '</br></br>Message could not be sent.</br>';
+			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
+			exit;
+		}
+	}
+
+	public function notify_author_on_review($id){
+		$output = $this->Review_model->get_manus_author_info($id);
+
+		foreach ($output as $key => $value) {
+			$title = $value->man_title;
+			$dear = 'Dear ' . $val->man_author_title . ' ' . $value->man_author . '<br/><br/>';
+			$email = $value->man_email;
+		}
+		
+		$nameuser = 'eJournal Admin';
+		$usergmail = 'nrcp.ejournal@gmail.com';
+		$password = '<<NRCP!!ejournal>>';
+		$mail = new PHPMailer;
+		$mail->isSMTP();
+		$mail->Host = "smtp.gmail.com";
+		// Specify main and backup server
+		$mail->SMTPAuth = true;
+		$mail->Port = 465;
+		// Enable SMTP authentication
+		$mail->Username = $usergmail;
+		// SMTP username
+		$mail->Password = $password;
+		// SMTP password
+		$mail->SMTPSecure = 'ssl';
+		// Enable encryption, 'ssl' also accepted
+		$mail->From = $usergmail;
+		$mail->FromName = $nameuser;
+		$mail->AddAddress($email);
+		// $mail->AddCC('nrcpeditorial2021@gmail.com');
+		// $mail->AddCC('oed@nrcp.dost.gov.ph');
+		$dir = "https://skms.nrcp.dost.gov.ph/user/login";
+		$htmlBody = date("F j, Y") . '<br/><br/>' .
+			$dear .
+			'Please be informed that your submitted manuscript <em>' . $title . '</em><br/>' .
+			'is now on review. <br/><br/>' .
+
+			'Thank you,<br/>'.
+			'Managing Editor<br/>'.
+			'NRCP Research Journal<br/><br/>'.
+			
+			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
+	
+		// email content
+		$mail->Subject = "NRCP Journal Publication : Manuscript On-Review";
 		$mail->Body = $htmlBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
@@ -1414,6 +1482,13 @@ class Manuscripts extends OPRS_Controller {
 		}
 	}
 	
+	public function add_remarks(){
+		$where['row_id'] = $this->input->post('man_id', TRUE);
+		$post['man_remarks'] = $this->input->post('man_remarks', TRUE);
+		
+		$this->Manuscript_model->update_remarks(array_filter($post), $where);
+		
+	}
 	// public function email_scoresheet($id) {
 	// 	$output = $this->Review_model->get_manus_author_info($id);
 	// 	foreach ($output as $key => $value) {

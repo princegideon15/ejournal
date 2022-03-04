@@ -74,6 +74,7 @@
             </div>
           </nav>
           <div class="tab-content" id="nav-tabContent">
+            <!-- ALL -->
             <div class="tab-pane fade show active p-3" id="nav-all" role="tabpanel" aria-labelledby="nav-all-tab">
               <table class="table table-hover" id="dataTable" width="100%" cellspacing="0">
               <thead>
@@ -82,7 +83,8 @@
                   <th>Title</th>
                   <th>Date Submitted</th>
                   <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                  <th>Action</th>
+                  <th>Actions</th>
+                  <th>Remarks</th>
                 </tr>
               </thead>
               <tbody>
@@ -113,43 +115,51 @@
                   <td><?php echo $c++; ?></td>
                   <td><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
                   <td><?php echo date_format(new DateTime($m->date_created), 'F j, Y, g:i a'); ?></td>
-                  <td><span style="cursor:pointer" class="badge badge-pill badge-<?php echo $class; ?>" data-toggle="modal" rel="tooltip" data-placement="top" title="View Tracking" data-target="#trackingModal" onclick="tracking('<?php echo $m->row_id; ?>','<?php echo $this->session->userdata('_oprs_type_num');?>','<?php echo $title ?>','<?php echo $m->man_status ?>')"><?php echo $status;?></span></td>
+                  <td><span style="cursor:pointer" class="badge badge-pill badge-<?php echo $class; ?>" data-toggle="modal" rel="tooltip" data-placement="top" title="View Tracking" data-target="#trackingModal" onclick="tracking('<?php echo $m->row_id; ?>','<?php echo $this->session->userdata('_oprs_type_num');?>','<?php echo rawurlencode($title) ?>','<?php echo $m->man_status ?>')"><?php echo $status;?></span></td>
                   <td>
-                    <!-- download manuscript -->
-                    <?php if (_UserRoleFromSession() == 3 && $m->man_status == 5) { ?>
-                      <a href="<?php echo base_url('/assets/oprs/uploads/words/'.$m->man_word); ?>" class="btn btn-sm btn-light text-dark"><span class="fa fa-file-word"></span> Download WORD</a>
-                    <?php } ?>
-                    <!-- view manuscript -->
-                    <?php if (_UserRoleFromSession() != 5) { ?>
-                      <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="fa fa-eye"></span> Abstract</button>
-                      <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="fa fa-eye"></span> Manuscript</button>
-                    <?php } ?>
-                    <!-- submit revision -->
-                    <?php if (_UserRoleFromSession() == 1 && $rev_act >= 3 && $m->man_status == 3) { ?>
-                    <button type="button" class="btn btn-light text-info btn-sm" onclick="submit_final('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#finalModal" rel="tooltip" data-placement="top" title="Submit Final Manuscript"><span class="fa fa-mail-forward"></span> Submit Final</button>
-                    <?php } ?>
-                    <!-- process manuscript -->
-                    <?php if (_UserRoleFromSession() == 3 && $m->man_status == '1') { ?>
-                    <button type="button" class="btn btn-light text-success btn-sm" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Process"><span class="fa fa-wrench" ></span> Process</button>
-                    <?php } ?>
-                    <!-- view reviewers -->
-                    <?php if ((_UserRoleFromSession() == 3 && $m->man_status != 1) || _UserRoleFromSession() == 8 ) { ?>
-                    <button type="button" class="btn btn-light text-info btn-sm" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo $title; ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fa fa-user-secret" ></span> Reviewers</button>
-                    <?php } ?>
-                    <!-- approve manuscript -->
-                    <?php if (_UserRoleFromSession() == 9 && $rev_act >= 3 ) { ?>
-                    <button type="button" class="btn btn-light text-success btn-sm" rel="tooltip" data-placement="top" title="Final Review" onclick="final_review('<?php echo $m->row_id; ?>')"><span class="	fa fa-gavel"></span> Final Review</button>
-                    <?php } ?>
-                    <!-- delete manuscript -->
-                    <?php if (_UserRoleFromSession() == 8) { ?>
-                    <button type="button" class="btn btn-light text-danger btn-sm" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span> Remove</button>
-                    <?php } ?>
+                    <div class="btn-group" role="group">
+                      <!-- MANAGING EDITOR -->
+                      <?php if (_UserRoleFromSession() == 3) { 
+                                if($m->man_status == 1){ ?>
+                                  <!-- process manuscript -->
+                                  <button type="button" class="btn border border-1 btn-light text-success" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Add Reviewers"><span class="fas fa-user-plus" ></span></button>
+                                  <!-- add remarks -->
+                                  <button type="button" class="btn border border-1 btn-light text-primary" onclick="add_remarks('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#remarksModal" rel="tooltip" data-placement="top" title="Add Remarks"><span class="far fa-edit" ></span></button>
+                                <?php }else if($m->man_status == 5){ ?>
+                                  <!-- download manuscript -->
+                                  <a href="<?php echo base_url('/assets/oprs/uploads/words/'.$m->man_word); ?>" class="btn  btn-light text-dark"><span class="fa fa-file-word"></span> Download WORD</a>
+                                <?php }else if($m->man_status != 1){ ?>
+                                  <!-- view reviewers -->
+                                  <button type="button" class="btn border border-1 btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                                <?php } ?>
+                                  <!-- view abstract and full text manuscript -->
+                                <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                                <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                      <?php } ?>
+                      <!-- SUPERADMIN -->
+                      <?php if (_UserRoleFromSession() == 8 ) { ?>
+                        <!-- view reviewers -->
+                        <button type="button" class="btn border border-1  btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                        <!-- view abstract and full text manuscript -->
+                        <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                        <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                        <!-- delete manuscript -->
+                        <button type="button" class="btn border border-1 btn-light text-danger" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span></button>
+                        <?php } ?>
+
+                        <!-- approve manuscript -->
+                        <?php if (_UserRoleFromSession() == 9 && $rev_act >= 3 ) { ?>
+                        <button type="button" class="btn btn-light text-success btn" rel="tooltip" data-placement="top" title="Final Review" onclick="final_review('<?php echo $m->row_id; ?>')"><span class="	fa fa-gavel"></span> Final Review</button>
+                        <?php } ?>
+                      </div>
                   </td>
+                  <td><em><?php echo ($m->man_remarks == NULL) ? '-' : $m->man_remarks;?></em></td>
                 </tr>
                 <?php endforeach; ?>
               </tbody>
             </table>
             </div>
+            <!-- NEW -->
             <div class="tab-pane fade p-3" id="nav-new" role="tabpanel" aria-labelledby="nav-new-tab">
               <table class="table table-hover" id="new_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -158,7 +168,8 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
+                    <th>Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,47 +179,44 @@
                   <?php $class = 'warning'; ?>
                   <?php $acoa = (empty($this->Coauthor_model->get_author_coauthors($m->row_id))) ? '' : ', ' . $this->Coauthor_model->get_author_coauthors($m->row_id);?>
                   <?php $title = $m->man_title . ', ' . $m->man_author . $acoa?>
-                  <tr >
+                  <tr>
                     <td><?php echo $c++; ?></td>
-                    <td><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
+                    <td width="50%"><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
                     <td><?php echo date_format(new DateTime($m->date_created), 'F j, Y, g:i a'); ?></td>
                     <td><span style="cursor:pointer" class="badge badge-pill badge-<?php echo $class; ?>" data-toggle="modal" rel="tooltip" data-placement="top" title="View Tracking" data-target="#trackingModal" onclick="tracking('<?php echo $m->row_id; ?>','<?php echo $this->session->userdata('_oprs_type_num');?>','<?php echo $title ?>','<?php echo $m->man_status ?>')"><?php echo $status;?></span></td>
                     <td>
-                      <!-- download manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == 5) { ?>
-                        <a href="<?php echo base_url('/assets/oprs/uploads/words/'.$m->man_word); ?>" class="btn btn-sm btn-light text-dark"><span class="fa fa-file-word"></span> Download WORD</a>
-                      <?php } ?>
-                      <!-- view manuscript -->
-                      <?php if (_UserRoleFromSession() != 5) { ?>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="fa fa-eye"></span> Abstract</button>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="fa fa-eye"></span> Manuscript</button>
-                      <?php } ?>
-                      <!-- submit revision -->
-                      <?php if (_UserRoleFromSession() == 1 && $rev_act >= 3 && $m->man_status == 3) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="submit_final('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#finalModal" rel="tooltip" data-placement="top" title="Submit Final Manuscript"><span class="fa fa-mail-forward"></span> Submit Final</button>
-                      <?php } ?>
-                      <!-- process manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == '1') { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Process"><span class="fa fa-wrench" ></span> Process</button>
-                      <?php } ?>
-                      <!-- view reviewers -->
-                      <?php if ((_UserRoleFromSession() == 3 && $m->man_status != 1) || _UserRoleFromSession() == 8 ) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo $title; ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fa fa-user-secret" ></span> Reviewers</button>
-                      <?php } ?>
-                      <!-- approve manuscript -->
-                      <?php if (_UserRoleFromSession() == 9 && $rev_act >= 3 ) { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" rel="tooltip" data-placement="top" title="Final Review" onclick="final_review('<?php echo $m->row_id; ?>')"><span class="	fa fa-gavel"></span> Final Review</button>
-                      <?php } ?>
-                      <!-- delete manuscript -->
-                      <?php if (_UserRoleFromSession() == 8) { ?>
-                      <button type="button" class="btn btn-light text-danger btn-sm" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span> Remove</button>
-                      <?php } ?>
+                      <div class="btn-group" role="group">
+                        <!-- MANAGING EDITOR -->
+                        <?php if (_UserRoleFromSession() == 3) { 
+                                  if($m->man_status == 1){ ?>
+                                    <!-- process manuscript -->
+                                    <button type="button" class="btn border border-1 btn-light text-success" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Add Reviewers"><span class="fas fa-user-plus" ></span></button>
+                                    <!-- add remarks -->
+                                    <button type="button" class="btn border border-1 btn-light text-primary" onclick="add_remarks('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#remarksModal" rel="tooltip" data-placement="top" title="Add Remarks"><span class="far fa-edit" ></span></button>
+                                  <?php } ?>
+                                    <!-- view abstract and full text manuscript -->
+                                  <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                                  <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                        <?php } ?>
+                        <!-- SUPERADMIN -->
+                        <?php if (_UserRoleFromSession() == 8 ) { ?>
+                          <!-- view reviewers -->
+                          <button type="button" class="btn border border-1  btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                          <!-- view abstract and full text manuscript -->
+                          <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                          <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                          <!-- delete manuscript -->
+                          <button type="button" class="btn border border-1 btn-light text-danger" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span></button>
+                          <?php } ?>
+                        </div>
+                        <td><em><?php echo ($m->man_remarks == NULL) ? '-' : $m->man_remarks;?></em></td>
                     </td>
                   </tr>
                   <?php endforeach; ?>
                 </tbody>
               </table>
             </div>
+            <!-- ON REVIEW -->
             <div class="tab-pane fade p-3" id="nav-onreview" role="tabpanel" aria-labelledby="nav-onreview-tab">
               <table class="table table-hover" id="onreview_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -217,7 +225,7 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -234,45 +242,39 @@
                   <?php $title = $m->man_title . ', ' . $m->man_author . $acoa?>
                   <tr >
                     <td><?php echo $c++; ?></td>
-                    <td><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
+                    <td width="50%"><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
                     <td><?php echo date_format(new DateTime($m->date_created), 'F j, Y, g:i a'); ?></td>
                     <td><span style="cursor:pointer" class="badge badge-pill badge-<?php echo $class; ?>" data-toggle="modal" rel="tooltip" data-placement="top" title="View Tracking" data-target="#trackingModal" onclick="tracking('<?php echo $m->row_id; ?>','<?php echo $this->session->userdata('_oprs_type_num');?>','<?php echo $title ?>','<?php echo $m->man_status ?>')"><?php echo $status;?></span></td>
                     <td>
-                      <!-- download manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == 5) { ?>
-                        <a href="<?php echo base_url('/assets/oprs/uploads/words/'.$m->man_word); ?>" class="btn btn-sm btn-light text-dark"><span class="fa fa-file-word"></span> Download WORD</a>
-                      <?php } ?>
-                      <!-- view manuscript -->
-                      <?php if (_UserRoleFromSession() != 5) { ?>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="fa fa-eye"></span> Abstract</button>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="fa fa-eye"></span> Manuscript</button>
-                      <?php } ?>
-                      <!-- submit revision -->
-                      <?php if (_UserRoleFromSession() == 1 && $rev_act >= 3 && $m->man_status == 3) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="submit_final('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#finalModal" rel="tooltip" data-placement="top" title="Submit Final Manuscript"><span class="fa fa-mail-forward"></span> Submit Final</button>
-                      <?php } ?>
-                      <!-- process manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == '1') { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Process"><span class="fa fa-wrench" ></span> Process</button>
-                      <?php } ?>
-                      <!-- view reviewers -->
-                      <?php if ((_UserRoleFromSession() == 3 && $m->man_status != 1) || _UserRoleFromSession() == 8 ) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo $title; ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fa fa-user-secret" ></span> Reviewers</button>
-                      <?php } ?>
-                      <!-- approve manuscript -->
-                      <?php if (_UserRoleFromSession() == 9 && $rev_act >= 3 ) { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" rel="tooltip" data-placement="top" title="Final Review" onclick="final_review('<?php echo $m->row_id; ?>')"><span class="	fa fa-gavel"></span> Final Review</button>
-                      <?php } ?>
-                      <!-- delete manuscript -->
-                      <?php if (_UserRoleFromSession() == 8) { ?>
-                      <button type="button" class="btn btn-light text-danger btn-sm" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span> Remove</button>
-                      <?php } ?>
+                      <div class="btn-group" role="group">
+                        <!-- MANAGING EDITOR -->
+                        <?php if (_UserRoleFromSession() == 3) {
+                          if($m->man_status != 1){ ?>
+                                    <!-- view reviewers -->
+                                    <button type="button" class="btn border border-1 btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                                  <?php } ?>
+                                    <!-- view abstract and full text manuscript -->
+                                  <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                                  <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                        <?php } ?>
+                        <!-- SUPERADMIN -->
+                        <?php if (_UserRoleFromSession() == 8 ) { ?>
+                          <!-- view reviewers -->
+                          <button type="button" class="btn border border-1  btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                          <!-- view abstract and full text manuscript -->
+                          <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                          <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                          <!-- delete manuscript -->
+                          <button type="button" class="btn border border-1 btn-light text-danger" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span></button>
+                          <?php } ?>
+                        </div>
                     </td>
                   </tr>
                   <?php endforeach; ?>
                 </tbody>
               </table>
             </div>
+            <!-- REVIEWED -->
             <div class="tab-pane fade p-3" id="nav-reviewed" role="tabpanel" aria-labelledby="nav-reviewed-tab">
              <table class="table table-hover" id="reviewed_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -281,7 +283,7 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,45 +300,39 @@
                   <?php $title = $m->man_title . ', ' . $m->man_author . $acoa?>
                   <tr >
                     <td><?php echo $c++; ?></td>
-                    <td><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
+                    <td width="50%"><a href="javascript:void(0);" onclick="view_manus(<?php echo $m->row_id; ?>);" class="text-dark "><?php echo $title; ?></a></td>
                     <td><?php echo date_format(new DateTime($m->date_created), 'F j, Y, g:i a'); ?></td>
                     <td><span style="cursor:pointer" class="badge badge-pill badge-<?php echo $class; ?>" data-toggle="modal" rel="tooltip" data-placement="top" title="View Tracking" data-target="#trackingModal" onclick="tracking('<?php echo $m->row_id; ?>','<?php echo $this->session->userdata('_oprs_type_num');?>','<?php echo $title ?>','<?php echo $m->man_status ?>')"><?php echo $status;?></span></td>
                     <td>
-                      <!-- download manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == 5) { ?>
-                        <a href="<?php echo base_url('/assets/oprs/uploads/words/'.$m->man_word); ?>" class="btn btn-sm btn-light text-dark"><span class="fa fa-file-word"></span> Download WORD</a>
-                      <?php } ?>
-                      <!-- view manuscript -->
-                      <?php if (_UserRoleFromSession() != 5) { ?>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="fa fa-eye"></span> Abstract</button>
-                        <button type="button" class="btn btn-light text-primary btn-sm" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="fa fa-eye"></span> Manuscript</button>
-                      <?php } ?>
-                      <!-- submit revision -->
-                      <?php if (_UserRoleFromSession() == 1 && $rev_act >= 3 && $m->man_status == 3) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="submit_final('<?php echo $m->row_id; ?>')" data-toggle="modal" data-target="#finalModal" rel="tooltip" data-placement="top" title="Submit Final Manuscript"><span class="fa fa-mail-forward"></span> Submit Final</button>
-                      <?php } ?>
-                      <!-- process manuscript -->
-                      <?php if (_UserRoleFromSession() == 3 && $m->man_status == '1') { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" onclick="process_man(<?php echo $m->row_id; ?>)" data-toggle="modal" data-target="#processModal" rel="tooltip" data-placement="top" title="Process"><span class="fa fa-wrench" ></span> Process</button>
-                      <?php } ?>
-                      <!-- view reviewers -->
-                      <?php if ((_UserRoleFromSession() == 3 && $m->man_status != 1) || _UserRoleFromSession() == 8 ) { ?>
-                      <button type="button" class="btn btn-light text-info btn-sm" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo $title; ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fa fa-user-secret" ></span> Reviewers</button>
-                      <?php } ?>
-                      <!-- approve manuscript -->
-                      <?php if (_UserRoleFromSession() == 9 && $rev_act >= 3 ) { ?>
-                      <button type="button" class="btn btn-light text-success btn-sm" rel="tooltip" data-placement="top" title="Final Review" onclick="final_review('<?php echo $m->row_id; ?>')"><span class="	fa fa-gavel"></span> Final Review</button>
-                      <?php } ?>
-                      <!-- delete manuscript -->
-                      <?php if (_UserRoleFromSession() == 8) { ?>
-                      <button type="button" class="btn btn-light text-danger btn-sm" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span> Remove</button>
-                      <?php } ?>
+                      <div class="btn-group" role="group">
+                          <!-- MANAGING EDITOR -->
+                          <?php if (_UserRoleFromSession() == 3) {
+                            if($m->man_status != 1){ ?>
+                                      <!-- view reviewers -->
+                                      <button type="button" class="btn border border-1 btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                                    <?php } ?>
+                                      <!-- view abstract and full text manuscript -->
+                                    <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                                    <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                          <?php } ?>
+                          <!-- SUPERADMIN -->
+                          <?php if (_UserRoleFromSession() == 8 ) { ?>
+                            <!-- view reviewers -->
+                            <button type="button" class="btn border border-1  btn-light text-info" onclick="view_reviewers('<?php echo $m->row_id; ?>','0','<?php echo rawurlencode($title); ?>','<?php echo $m->man_status; ?>')" data-toggle="modal" data-target="#reviewerModal" rel="tooltip" data-placement="top" title="View Reviewers"><span class="fas fa-users" ></span></button>
+                            <!-- view abstract and full text manuscript -->
+                            <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_abs; ?>', 'abs')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Abstract"><span class="far fa-file-alt"></span> ABS</button>
+                            <button type="button" class="btn border border-1 btn-light text-dark" onclick="manus_view('<?php echo $m->man_file; ?>', 'full')" data-toggle="modal" data-target="#manusModal" rel="tooltip" data-placement="top" title="View Full Manuscript"><span class="far fa-file-alt"></span> PDF</button> 
+                            <!-- delete manuscript -->
+                            <button type="button" class="btn border border-1 btn-light text-danger" rel="tooltip" data-placement="top" title="Delete" onclick="remove_manus('<?php echo $m->row_id; ?>')"><span class="fa fa-trash"></span></button>
+                            <?php } ?>
+                        </div>
                     </td>
                   </tr>
                   <?php endforeach; ?>
                 </tbody>
               </table>
             </div>
+            <!-- TO SUBMIT FINAL MANUSCRIPT FROM AUTHOR -->
             <div class="tab-pane fade p-3" id="nav-final" role="tabpanel" aria-labelledby="nav-final-tab">
               <table class="table table-hover" id="final_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -345,7 +341,7 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -396,6 +392,7 @@
                 </tbody>
               </table>
             </div>
+            <!-- FOR PUBLICATION -->
             <div class="tab-pane fade p-3" id="nav-publication" role="tabpanel" aria-labelledby="nav-publication-tab">
               <table class="table table-hover" id="for_p_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -404,7 +401,7 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -455,6 +452,7 @@
                 </tbody>
               </table>
             </div>
+            <!-- PUBLISHED -->
             <div class="tab-pane fade p-3" id="nav-published" role="tabpanel" aria-labelledby="nav-published-tab">
             <table class="table table-hover" id="pub_manus_table" width="100%" cellspacing="0">
                 <thead>
@@ -463,7 +461,7 @@
                     <th>Title</th>
                     <th>Date Submitted</th>
                     <th>Status <i class="fa fa-exclamation-circle text-primary" rel="tooltip" data-placement="top" title="Click the status to view tracking"></i></th>
-                    <th>Action</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1032,7 +1030,7 @@
     <div class="modal-dialog modal-lg" role="document" >
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Manuscript</h5>
+          <h5 class="modal-title" id="exampleModalLabel"></h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
           </button>
@@ -1105,46 +1103,47 @@
         <div class="modal-body" >
           <div class="container-fluid">
             <div class="row">
-              <div class="col">
+              <div class="col-6">
                 <embed id="manus_review" width="100%" height="700px" type="application/pdf" class="border border-dark">
               </div>
-              <div class="col">
+              <div class="col-6">
                 <form id="submit_review_form">
                   <table class="table table-hover table-borderless" style="font-size:14px;">
-                    <thead>  <tr>
-                      <th>TITLE</th>
-                      <th colspan="4" id="rev_title"></th>
-                    </tr>
-                    <tr>
-                      <th>AUTHOR</th>
-                      <th  colspan="4"  id="rev_author"></th>
-                    </tr>
-                    <tr>
-                      <th scope="col">CRITERIA</th>
-                      <th scope="col">DESCRIPTION</th>
-                      <th scope="col">WEIGHT</th>
-                      <th scope="col" width="80px">SCORE</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                    <thead>  
+                      <tr>
+                        <th>TITLE</th>
+                        <th colspan="4" id="rev_title"></th>
+                      </tr>
+                      <tr>
+                        <th>AUTHOR</th>
+                        <th  colspan="4"  id="rev_author"></th>
+                      </tr>
+                      <tr>
+                        <th scope="col">CRITERIA</th>
+                        <th scope="col">DESCRIPTION</th>
+                        <th scope="col">WEIGHT</th>
+                        <th scope="col" width="80px">SCORE</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                     <?php $y = 1;
-$x = 1;foreach ($criteria as $key => $c): ?>
+                    $x = 1;
+                    foreach ($criteria as $key => $c): ?>
                     <tr>
                       <td><?php echo $c->crt_subject; ?></td>
                       <td><?php echo $c->crt_description; ?></td>
                       <td><?php echo $c->crt_weight; ?></td>
-                      <?php if ($c->crt_type == 'text') {
-	?>
-                      <td><input type="text" class="form-control border border-danger crt_score" maxlength="2" id="scr_crt_<?php echo $x; ?>" name="scr_crt_<?php echo $x; ?>">
-                    </td>
+                      <?php if ($c->crt_type == 'text') { ?>
+                      <td><input type="text" class="form-control border border-danger crt_score" maxlength="2" id="scr_crt_<?php echo $x; ?>" name="scr_crt_<?php echo $x; ?>"></td>
                     <?php $x++;}?>
-                  </tr>
-                  <?php if ($c->crt_type == 'text') {?>
-                  <tr>
-                    <td colspan="4">
-                    <textarea class="form-control form-control-sm" cols="2" name="scr_rem_<?php echo $y; ?>" placeholder="Comments/Remarks (Optional)"></textarea></tr>
-                  </td>
-                  <tr>
+                    </tr>
+                    <?php if ($c->crt_type == 'text') {?>
+                    <tr>
+                      <td colspan="4">
+                        <textarea class="form-control form-control-sm" cols="2" name="scr_rem_<?php echo $y; ?>" placeholder="Comments/Remarks (Optional)"></textarea>
+                      </td>
+                    </tr>
+                    <tr>
                     <?php $y++;}?>
                     <?php endforeach;?>
                     <td colspan="3" class="font-weight-bold">TOTAL SCORE</td>
@@ -1425,3 +1424,29 @@ $x = 1;foreach ($criteria as $key => $c): ?>
   </div>
 </div>
 <!--/. Confirm Delete Manuscript -->
+
+<!-- Remarks -->
+<div class="modal fade" id="remarksModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Remarks</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      <form id="remarks_form">
+        <div class="form-group">
+          <textarea class="form-control" id="man_remarks" name="man_remarks"  placeholder="Type your remarks here..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!--/. Remarks -->

@@ -6,6 +6,7 @@ class User_model extends CI_Model {
 	private $nonmembers = 'tblnonmembers';
 	private $reviewers = 'tblreviewers';
 	private $privileges = 'tblprivileges';
+	private $roles = 'tblroles';
 	// skms
 	private $members = 'tblusers';
 	private $personal = 'tblpersonal_profiles';
@@ -64,11 +65,16 @@ class User_model extends CI_Model {
 	 */
 	public function get_user($id) {
 		$oprs = $this->load->database('dboprs', TRUE);
-		$oprs->select('*');
-		$oprs->from($this->users);
-		$oprs->where_not_in('row_id', $id);
+		$oprs->select('usr_status, role_name, usr_sys_acc, usr_username, usr_id, usr_logout_time, usr_role');
+		$oprs->from($this->users . ' a');
+		$oprs->join($this->roles . ' r', 'a.usr_role = r.role_id');
+		$oprs->where_not_in('a.row_id', $id);
 		$query = $oprs->get();
 		return $query->result();
+
+		
+		$oprs->from($this->users . ' a');
+		$oprs->join($this->privileges . ' p', 'a.usr_id = p.prv_usr_id');
 	}
 
 	/**

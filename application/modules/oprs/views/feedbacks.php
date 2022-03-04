@@ -99,7 +99,7 @@
                 <canvas id="ui_bar_chart" height="100"></canvas>
               </div>
               <div class="col-4">
-                <canvas id="ui_pie_chart" height="100"></canvas>
+                <canvas id="ui_pie_chart" height="80"></canvas>
               </div>
 						</div>
             <div class="alert alert-secondary" role="alert">
@@ -110,7 +110,7 @@
                 <canvas id="ux_bar_chart" height="100"></canvas>
               </div>
               <div class="col-4">
-                <canvas id="ux_pie_chart" height="100"></canvas>
+                <canvas id="ux_pie_chart" height="80"></canvas>
               </div>
 						</div>
           </div>

@@ -93,15 +93,6 @@
 
                   <?php $sys = (($u->usr_sys_acc == 1) ? 'eJournal' 
                                 : (($u->usr_sys_acc == 2) ? 'OPRS' : 'eJournal | OPRS'));?>
-
-                  <?php $desc = (($u->usr_sys_acc == 1 && $u->usr_role == 7) ? 'Admin' 
-                                : (($u->usr_sys_acc == 1 && $u->usr_role == 6) ? 'Manager' 
-                                : (($u->usr_sys_acc == 3 && $u->usr_role == 3) ? 'Managing Editor'
-                                : (($u->usr_sys_acc == 2 && $u->usr_role == 7) ? 'Admin'
-                                : (($u->usr_sys_acc == 2 && $u->usr_role == 5) ? 'Reviewer'
-                                : (($u->usr_sys_acc == 2 && $u->usr_role == 9) ? 'Publication Committee'
-                                : 'Manager')))))); ?>
-
                   
                   <?php $sys_class = (($u->usr_sys_acc == 1) ? 'primary' 
                                 : (($u->usr_sys_acc == 2) ? 'success' : 'dark'));?>
@@ -115,7 +106,7 @@
                         <small class="text-muted">Last active: <?php echo $u->usr_logout_time; ?></small>
                       </div>
                     </td>
-                    <td><?php echo $u->usr_desc; ?></td>
+                    <td><?php echo $u->role_name; ?></td>
                     <td><span class="badge badge-<?php echo $sys_class; ?>"><?php echo $sys; ?></td>
                     <td><span class="badge badge-<?php echo $class; ?>"><?php echo $status; ?></td>
                     <td>
