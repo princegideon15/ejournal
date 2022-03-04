@@ -7,7 +7,6 @@ var mem_exp = [];
 var mem_aff = [];
 var mem_prf = [];
 var acoa = [];
-
 var man_id;
 var maxx;
 var r;
@@ -17,33 +16,17 @@ var user_status;
 var array_prf = [];
 var manuscripts = [];
 var revs = [];
-
 var revIncr = 1;
 var session_count = 0;
-
 var remove_man_id;
 
 
 $(document).ready(function() {
 
-    // setInterval(function(){
-
-    //     if(window.location.pathname != '/ejournal/oprs/login'){
-    //         session_count++;
-    //         console.log(session_count);
-    //         if(session_count == 30){
-        
-    //             alert('session expired');
-    //         }
-    //     }
-    
-    //   } ,1000);
-
-
-    
-
+    // get notifications and count
     notifications();
 
+    // validate if notifications opened already
     var notif_data = localStorage.getItem('notif_data');
 
     if(notif_data)
@@ -138,10 +121,12 @@ $(document).ready(function() {
         // });
     });
 
+    // validate file size before uploading
     $.validator.addMethod('filesize', function (value, element, param) {
         return this.optional(element) || (element.files[0].size <= param)
     }, 'File size must be less than 20 MB');
 
+    // unused upload manuscript (author only)
     jQuery(function ($) {
         "use strict";
         //validate upload manuscript form
@@ -187,15 +172,9 @@ $(document).ready(function() {
                 }
             },
             submitHandler: function() {
-
-              
-
                 var full = $('#man_file')[0].files[0].size;
-
                 var abs = $('#man_abs')[0].files[0].size;
-
                 var word = $('#man_word')[0].files[0].size;
-
                 if(full < 20000000) {
                     $('#badge_full').next('.badge-danger').hide();
                 }else if(abs < 20000000){
@@ -219,6 +198,7 @@ $(document).ready(function() {
 
     });
 
+    // submit manuscript if author account (unused)
     $('#submit_upload_manuscript').click(function(){
 
         $('.modal').modal('hide');
@@ -244,15 +224,13 @@ $(document).ready(function() {
             crossDomain: true,
             type: 'POST',
             success: function(data, textStatus, jqXHR) {
-                // console.log(data);
-                // $('#uploadModal').modal('toggle');
-                // $('#confirmUploadModal').modal('toggle');
                 $('body').loading('stop');
                 $('#refreshModal').modal('toggle');
             }
         });
     });
     
+    // delete manuscript (super admin only)
     $('#remove_manus').click(function(){
         $('#confirmRemoveModal').modal('toggle');
         $.ajax({
@@ -261,26 +239,15 @@ $(document).ready(function() {
             cache: false,
             crossDomain: true,
             success: function(data) {
-                // console.log(data);
                 location.reload();
-                // $.notify({
-                //     icon: 'fa fa-check-circle',
-                //     message: 'Thank you for signing up. You can now log in.'
-                // }, {
-                //     type: 'success',
-                //     timer: 3000,
-                // });
-
-                // $('#form_sign_up')[0].reset();
-                // $('#refresh_captcha').click();
             }
         });
     });
 
     var href = $(window.location).attr("href").split('/').pop();
     $('a[href="'+href+'"]').parent().addClass('active');
-    
 
+    // check if multiple email exists in one manuscript
     $.validator.addMethod(
         "repeatEmail",
         function(value, element) {
@@ -301,6 +268,7 @@ $(document).ready(function() {
         }
     );
 
+    // check if multiple name exists in one manuscript
     $.validator.addMethod(
         "uniqueName",
         function(value, element) {
@@ -322,16 +290,14 @@ $(document).ready(function() {
         }
     );
 
+    // check if multiple email exists in one manuscript
     $.validator.addMethod(
         "uniqueEmail",
         function(value, element) {
-
             response = (revs.indexOf(value) != -1) ? false : true;
-
             return response;
         }
     );
-
 
     $('#collapse_new_table').DataTable();
     $('#collapse_lapreq_table').DataTable();
@@ -352,7 +318,7 @@ $(document).ready(function() {
     $('#collapse_complete_table').DataTable();
     $('#collapse_reviewers_table').DataTable();
 
-
+    // activity logs datatable
     if (prv_exp == 0) {
         $('#activity_logs_table').DataTable();
     } else {
@@ -400,6 +366,7 @@ $(document).ready(function() {
         });
     }
 
+    // manuscript datatable in reports
     if (prv_exp == 0) {
         $('#report_manuscript_table').DataTable();
     } else {
@@ -440,6 +407,7 @@ $(document).ready(function() {
         });
     }
 
+    // reviewers datatable in reports
     if (prv_exp == 0) {
         $('#report_reviewer_table').DataTable();
     } else {
@@ -484,6 +452,7 @@ $(document).ready(function() {
         });
     }
 
+    // lapsed request datatable in reports
     if (prv_exp == 0) {
         $('#report_lapreq_table').DataTable();
     } else {
@@ -528,6 +497,7 @@ $(document).ready(function() {
         });
     }
 
+    // declined request datatable in reports
     if (prv_exp == 0) {
         $('#report_decreq_table').DataTable();
     } else {
@@ -572,6 +542,7 @@ $(document).ready(function() {
         });
     }
 
+    // lapsed review datatable in reports
     if (prv_exp == 0) {
         $('#report_laprev_table').DataTable();
     } else {
@@ -616,6 +587,7 @@ $(document).ready(function() {
         });
     }
 
+    // reviewed manuscripts datatable 
     if (prv_exp == 0) {
         $('#report_revman_table').DataTable();
     } else {
@@ -660,6 +632,7 @@ $(document).ready(function() {
         });
     }
 
+    // completed reviews datatable in reports
     if (prv_exp == 0) {
         $('#report_comrev_table').DataTable();
     } else {
@@ -704,6 +677,7 @@ $(document).ready(function() {
         });
     }
 
+    // ui/ux datatable in reports
     if (prv_exp == 0) {
         $('#uiux_table').DataTable();
     } else {
@@ -748,10 +722,9 @@ $(document).ready(function() {
         });
     }
 
-
     $('#dataTable').DataTable();
 
-    //get title
+    // get titles (mr., ms. etc)
     $.ajax({
         type: "GET",
         url: base_url + "oprs/manuscripts/get_titles",
@@ -766,19 +739,22 @@ $(document).ready(function() {
         }
     });
 
+    // slide effect of titles of non-members (unused)
     $('#non_title').editableSelect({
         effects: 'slide'
     });
 
+    // slide effect of initial reviewer title
     $('#trk_title1').editableSelect({
         effects: 'slide'
     });
 
+    // slide effect of journal volume
     $('#jor_volume').editableSelect({
         effects: 'slide'
     });
 
-    //get members info
+    // get members info
     $.ajax({
         type: "GET",
         url: base_url + "oprs/manuscripts/members/",
@@ -799,7 +775,7 @@ $(document).ready(function() {
         }
     });
 
-    //get non-members info
+    //get non-members info (unused)
     // $.ajax({
     //     type: "GET",
     //     url: base_url + "oprs/manuscripts/non_members/",
@@ -822,7 +798,7 @@ $(document).ready(function() {
     //     }
     // });
 
-    //get authors info
+    // get authors info
     $.ajax({
         type: "GET",
         url: base_url + "oprs/manuscripts/authors/",
@@ -837,13 +813,13 @@ $(document).ready(function() {
         }
     });
 
-
+    // show member name on keyup
     if ($('#trk_rev1').length)
         autocomplete(document.getElementById("trk_rev1"), mem_exp, '#trk_rev_email1', '#trk_rev_num1', '#trk_rev_id1', '1', '#trk_rev_spec1', '#trk_title1');
 
 
+    // show aythir name on keyup
     if ($('#man_author').length)
-    // autocomplete_acoa(document.getElementById("man_author"), acoa);
         autocomplete_acoa(document.getElementById("man_author"), mem_exp, '#man_affiliation', '#man_email', '#man_usr_id');
 
     $('body').tooltip({
@@ -858,7 +834,7 @@ $(document).ready(function() {
         }
     });
 
-    // sign up
+    // sign up (unused)
     $("#form_sign_up").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -954,7 +930,6 @@ $(document).ready(function() {
                 minlength: 3,
                 email: true,
                 remote: {
-                    // url: base_url + "oprs/user/verify_email/",
                     url: base_url + "oprs/user/verify_email/",
                     type: "post",
                     data: {
@@ -1231,7 +1206,7 @@ $(document).ready(function() {
         }
     });
 
-    //publish manuscript to ejournal
+    // publish manuscript to ejournal
     $("#publish_form").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -1298,12 +1273,14 @@ $(document).ready(function() {
         }
     });
 
+    // display reviewer name in card header after entering/select reviewer
     $(document).on('keyup', 'input[name^="trk_rev"]', function() {
         if (event.keyCode == 8 || event.keyCode == 46) {
             $(this).closest('div.card').find('input[name^="trk_rev_id"]').val('');
         }
     });
 
+    // replaced [FULL NAME] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_rev[]"]', function() {
 
         var id = $(this).attr('id');
@@ -1327,6 +1304,7 @@ $(document).ready(function() {
         $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
     });
 
+    // replaced [TITLE] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_title[]"]', function() {
 
         var id = $(this).attr('id');
@@ -1347,6 +1325,7 @@ $(document).ready(function() {
         $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
     });
 
+    // replaced [SPECIALIZATION] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_rev_spec[]"]', function() {
 
         var id = $(this).attr('id');
@@ -1367,6 +1346,7 @@ $(document).ready(function() {
         $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
     });
 
+    // submit final process (for finalization)
     $('#submit_final_process').click(function() {
 
         $('.modal').modal('hide');
@@ -1451,7 +1431,7 @@ $(document).ready(function() {
         }
     });
 
-    //forgot password email verification
+    // forgot password email verification
     $("#form_forgot").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -1499,19 +1479,7 @@ $(document).ready(function() {
         }
     });
 
-    // $('#app_btn').click(function() {
-    // 	$('#man_status').val(4);
-    // });
-
-    // $('#rev_btn').click(function() {
-    // 	$('#man_status').val(5);
-    // });
-
-    // $('#dis_btn').click(function() {
-    // 	$('#man_status').val(6);
-    // });
-
-
+    // dynamic adding of co-author
     var inpIncr = 0;
     $('#btn_add_coa').click(function() {
         var html = '';
@@ -1538,10 +1506,12 @@ $(document).ready(function() {
         autocomplete_acoa(document.getElementById("coa_name" + inpIncr), mem_exp, '#coa_affiliation' + inpIncr, '#coa_email' + inpIncr);
     });
 
+    // remove added co-author
     $('#coauthors').on('click', 'a', function() {
         $(this).closest('#added_coa').remove();
     });
 
+    // add reviewers
     $('#btn_add_rev').click(function() {
         var select;
         $.each(array_prf, function(key, val) {
@@ -1647,48 +1617,21 @@ $(document).ready(function() {
 
     });
 
+    // remove added reviewer
     $('#rev_acc').on('click', '.btn .fa-trash', function() {
         $(this).closest('#added_rev').remove();
         var find_mail = $(this).closest('#added_rev').find('.btn-link').text();
         $('#rev_acc_mail').find('.card:contains(' + find_mail + ')').remove();
     });
 
+    // rename card header based on selected reviewer
     $('#rev_acc').on('click', '.card-header', function() {
         var find_mail = $(this).closest('#added_rev').find('.btn-link').text();
         $('#rev_acc_mail').find('.card-header:contains(' + find_mail + ')').click();
-        // $(this).next('div').find('input[name="trk_rev[]"]').focusin();
         
     });
 
-
-    // $('#jor_volume').blur(function()
-    // {
-
-    // 	var jor = $('#jor_volume').val();
-    // 	$("#jor_issue option").attr("hidden", false);
-
-    // 	$.ajax({
-    //       type:"GET",
-    //       url: base_url + "oprs/manuscripts/journal/"+jor,
-    //       dataType:"json",
-    //       crossDomain: true,
-    //       success:
-    //               function(data)
-    //               {
-    //               	if(data.length > 0)
-    //               	{
-    //               		$.each(data,function(key,val)
-    // 	              	{
-    // 	              		$("#jor_issue option[value='"+val.jor_issue+"']").attr('hidden',true);
-    // 	              	});
-    //               	}
-
-    //               }
-    //     });
-
-    // });
-
-
+    // auto total score entered in evaluation form of reviewer
     $(document).on("keyup", ".crt_score", function(e) {
         if (/\D/g.test(this.value)) {
             // Filter non-digits from input value.
@@ -1704,7 +1647,7 @@ $(document).ready(function() {
         $("#crt_total").val(sum);
     });
 
-    // prcess manuscript validation
+    // validate review of manuscript
     $("#submit_review_form").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -1752,6 +1695,7 @@ $(document).ready(function() {
         }
     });
 
+    // submit review manuscript
     $('#submit_review_manuscript').click(function(){
         $('#confirmSubmitReviewModal').modal('toggle');
         $('#startReviewModal').modal('toggle');
@@ -1779,14 +1723,13 @@ $(document).ready(function() {
             });
     });
 
-
     $(document).on('hide.bs.modal', '#reviewerModal', function() {
         for (i = 0; i < 100; i++) {
             window.clearInterval(i);
         }
     });
 
-
+    // unused
     $('#refresh_captcha').click(function() {
         $.ajax({
             type: "GET",
@@ -1801,6 +1744,7 @@ $(document).ready(function() {
         });
     });
 
+    // approve manuscript (for finalization)
     $('#btn_approve').click(function() {
         if ($('#man_page_position').val() != '') {
             //approve and publish Manuscripts
@@ -1822,7 +1766,7 @@ $(document).ready(function() {
         }
     });
 
-
+    // replaced (volume) in tinymce after entering/select reviewer
     $("#jor_volume").blur(function() {
 
         var jor_vol = localStorage.getItem('jor_vol');
@@ -1843,6 +1787,7 @@ $(document).ready(function() {
         }
     });
 
+    // replaced (issue) in tinymce after entering/select reviewer 
     $("#jor_issue").change(function() {
 
         var jor_iss = localStorage.getItem('jor_issue');
@@ -1866,6 +1811,7 @@ $(document).ready(function() {
         }
     });
 
+    // show journal counts per year 
     $('#art_year').on('change', function() {
         $.ajax({
             type: "POST",
@@ -1892,6 +1838,7 @@ $(document).ready(function() {
         });
     });
 
+    // show article counts per year
     $('#jor_year, #jor_issue, #jor_volume').on('change', function() {
 
         $('#jor_year').next('small').remove();
@@ -1910,6 +1857,7 @@ $(document).ready(function() {
         }
     });
 
+    // replaced (volume issue) in tinymce after entering/select reviewer
     $("#art_issue").on('change', function() {
 
         var text = $('#art_issue option:selected').text();
@@ -1933,6 +1881,7 @@ $(document).ready(function() {
         }
     });
 
+    // display exisiting journal volume issue
     $('#article-tab').click(function() {
         var jor_vol = localStorage.getItem('jor_vol');
         var jor_iss = localStorage.getItem('jor_issue');
@@ -1963,7 +1912,7 @@ $(document).ready(function() {
         localStorage.setItem('jor_issue', '0');
     });
 
-
+    // display input for new journal volume issue
     $('#new-tab').click(function() {
         var split_iss = localStorage.getItem('art_iss');
         var x = split_iss.split(',');
@@ -1986,6 +1935,7 @@ $(document).ready(function() {
         $('#art_issue').next().hide();
     });
 
+    // load content of tinymce on adding new reviewer
     $('#new_rev').click(function() {
         $('#form_journal').hide();
         $('#process_manuscript_form')[0].reset();
@@ -1993,11 +1943,11 @@ $(document).ready(function() {
         $('#rev_acc #collapse1').addClass('show');
         $('#rev_acc_mail .card').not(':first').remove();
         $('#rev_acc_mail #collapse_mail1').addClass('show');
-        // revIncr = 1;
         load_email_content();
     
     });
 
+    // check if multiple email in one manuscript
     $('#get_email').change(function() {
         if ($(this).val() != '')
             $.ajax({
@@ -2035,6 +1985,7 @@ $(document).ready(function() {
             });
     });
 
+    // for author/reviewer multiple account validation (unused)
     $('.login #usr_username').change(function() {
         if ($(this).val() != '')
             $.ajax({
@@ -2065,14 +2016,17 @@ $(document).ready(function() {
             });
     });
 
+    // unused
     $('#revise_review').click(function() {
         $('#approve_review').prop('checked', true);
     });
 
+    // unused
     $('#disapprove_review').click(function() {
         $('#revise_review').prop('checked', false);
     });
 
+    // change password
     $("#form_change_pass").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -2143,13 +2097,14 @@ $(document).ready(function() {
         $('#rev_header_mail' + pos).text($(this).val());
     });
 
-
+    // unused
     $('#custom_auth').click(function() {
         $('#man_author').val('');
         $('#man_affiliation').val('');
         $('#man_email').val('');
     });
 
+    // unused
     $('#default_auth').click(function() {
         $.ajax({
             type: "POST",
@@ -2177,6 +2132,7 @@ $(document).ready(function() {
 
     });
 
+    // dynamicallly show user role per system access
     $('#usr_sys_acc').change(function() {
         $('#usr_role').prop('disabled', false);
 
@@ -2190,14 +2146,18 @@ $(document).ready(function() {
             $('#usr_role').append('<option value="" selected>Select User Role</option>' +
                 '<option value="7">Admin</option>' +
                 '<option value="9">Publication Committee</option>' +
+                '<option value="3">Managing Editor</option>' +
                 '<option value="6">Manager</option>' +
-                '<option value="3">Managing Editor</option>');
+                '<option value="10">Editor</option>' +
+                '<option value="11">Guest Editor</option>' +
+                '<option value="12">Editor-in-Chief</option>');
         }else{
             $('#usr_role').append('<option value="" selected>Select User Role</option>' +
                 '<option value="3">Managing Editor</option>');
         }
     });
 
+    // edit user
     $('#editUserModal #usr_sys_acc').change(function() {
         $('#editUserModal #usr_role').prop('disabled', false);
 
@@ -2211,14 +2171,18 @@ $(document).ready(function() {
             $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
                 '<option value="7">Admin</option>' +
                 '<option value="9">Publication Committee</option>' +
+                '<option value="3">Managing Editor</option>' +
                 '<option value="6">Manager</option>' +
-                '<option value="3">Managing Editor</option>');
+                '<option value="10">Editor</option>' +
+                '<option value="11">Guest Editor</option>' +
+                '<option value="12">Editor-in-Chief</option>');
         }else{
             $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
                 '<option value="3">Managing Editor</option>');
         }
     });
 
+    // show users privileges
     $('#user_control').change(function() {
         var usr_grp = $(this).val();
 
@@ -2304,6 +2268,7 @@ $(document).ready(function() {
 
     });
 
+    // privilege to add
     $(document).on('click', 'input[name="prv_add[]"]', function() {
         var priv = ($(this).prop("checked") == true) ? 1 : 0;
         var id = $(this).val();
@@ -2321,6 +2286,7 @@ $(document).ready(function() {
 
     });
 
+    // privilege to edit
     $(document).on('click', 'input[name="prv_edit[]"]', function() {
         var priv = ($(this).prop("checked") == true) ? 1 : 0;
         var id = $(this).val();
@@ -2337,6 +2303,7 @@ $(document).ready(function() {
         });
     });
 
+    // privilege to delete
     $(document).on('click', 'input[name="prv_delete[]"]', function() {
         var priv = ($(this).prop("checked") == true) ? 1 : 0;
         var id = $(this).val();
@@ -2353,6 +2320,7 @@ $(document).ready(function() {
         });
     });
 
+    // privilege to view
     $(document).on('click', 'input[name="prv_view[]"]', function() {
         var priv = ($(this).prop("checked") == true) ? 1 : 0;
         var id = $(this).val();
@@ -2369,6 +2337,7 @@ $(document).ready(function() {
         });
     });
 
+    // privilege to export
     $(document).on('click', 'input[name="prv_export[]"]', function() {
         var priv = ($(this).prop("checked") == true) ? 1 : 0;
         var id = $(this).val();
@@ -2385,7 +2354,7 @@ $(document).ready(function() {
         });
     });
 
-    // prcess import backup
+    // process import backup
     $("#import_backup_form").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -2460,67 +2429,70 @@ $(document).ready(function() {
 
     // save feedback
     $('input:radio[name="non_member"]').change(
-        function(){
-            if (this.checked) {
-                    $(".ui-container .alert-danger").remove();
-            }
-        });
-    
-        $('input:radio[name="fb_rate_ux"]').change(
-        function(){
-            if (this.checked) {
-                    $(".ux-container .alert-danger").remove();
-            }
-        });
-    
-      $('#feedback_form').on('submit', function(e){
-    
-        e.preventDefault();
-    
-        var alert = '<div class="alert alert-danger w-100" role="alert"> \
-                            Please select your rating. \
-                            </div>';
-    
-        if (!$("input[name='fb_rate_ui']").is(':checked')) {
-            $(".ui-container .alert-danger").remove();
-            $(alert).hide().appendTo(".ui-container").fadeIn();
-        }
-        
-        if (!$("input[name='fb_rate_ux']").is(':checked')) {
-            $(".ux-container .alert-danger").remove();
-            $(alert).hide().appendTo(".ux-container").fadeIn();
-        }
-    
-        if($("input[name='fb_rate_ui']").is(':checked') && $("input[name='fb_rate_ux']").is(':checked')){
-            $.ajaxSetup({
-                headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            });
-    
-            var formdata = $(this).serializeArray();
-            // console.log(formdata);
-            $.ajax({
-                type: "POST",
-                url: base_url + 'admin/feedback/submit/2',
-                data:  formdata,
-                cache: false,
-                crossDomain: true,
-                success: function(data) {
-                  // console.log(data);return false;
-                    $('#feedback_form').remove();
-    
-                    var thanks = '<p class="text-center h2">Thank you for your feedback.</p> \
-                                  <p class="text-center btn-link font-weight-bold"><u><a href="'+ base_url + 'oprs/login/logout");">Proceed to logout</a></u></p>';
-                             
-                    
-                    $(thanks).hide().appendTo("#feedbackModal .modal-body").fadeIn();
-    
-                }
-            });
+    function(){
+        if (this.checked) {
+                $(".ui-container .alert-danger").remove();
         }
     });
+    
+    // validate ux rate selection
+    $('input:radio[name="fb_rate_ux"]').change(
+    function(){
+        if (this.checked) {
+                $(".ux-container .alert-danger").remove();
+        }
+    });
+    
+    // submit ui/ux feedback form
+    $('#feedback_form').on('submit', function(e){
 
+    e.preventDefault();
+
+    var alert = '<div class="alert alert-danger w-100" role="alert"> \
+                        Please select your rating. \
+                        </div>';
+
+    if (!$("input[name='fb_rate_ui']").is(':checked')) {
+        $(".ui-container .alert-danger").remove();
+        $(alert).hide().appendTo(".ui-container").fadeIn();
+    }
+    
+    if (!$("input[name='fb_rate_ux']").is(':checked')) {
+        $(".ux-container .alert-danger").remove();
+        $(alert).hide().appendTo(".ux-container").fadeIn();
+    }
+
+    if($("input[name='fb_rate_ui']").is(':checked') && $("input[name='fb_rate_ux']").is(':checked')){
+        $.ajaxSetup({
+            headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+
+        var formdata = $(this).serializeArray();
+        // console.log(formdata);
+        $.ajax({
+            type: "POST",
+            url: base_url + 'admin/feedback/submit/2',
+            data:  formdata,
+            cache: false,
+            crossDomain: true,
+            success: function(data) {
+                // console.log(data);return false;
+                $('#feedback_form').remove();
+
+                var thanks = '<p class="text-center h2">Thank you for your feedback.</p> \
+                                <p class="text-center btn-link font-weight-bold"><u><a href="'+ base_url + 'oprs/login/logout");">Proceed to logout</a></u></p>';
+                            
+                
+                $(thanks).hide().appendTo("#feedbackModal .modal-body").fadeIn();
+
+            }
+        });
+    }
+    });
+
+    // select all structure only for backup
     $("#select_all_structure").change(function() {
       if (this.checked) {
           $("input[name='table_structure[]']").each(function() {
@@ -2533,6 +2505,7 @@ $(document).ready(function() {
       }
     });
   
+    // select all data only for backup
     $("#select_all_data").change(function() {
         if (this.checked) {
             $("input[name='table_data[]']").each(function() {
@@ -2547,21 +2520,24 @@ $(document).ready(function() {
   
     $('#sd_table').hide();
   
+    // hide structure/data table if quick export
     $('#quick_export').change(function(){
   
         $('#sd_table').hide();
     });
   
+    // show structure/data table if custom export
     $('#custom_export').change(function(){
   
         $('#sd_table').show();
     });
   
-    
+    // display sql file in text field
     $('#import_file').change(function(){
       $('.custom-file-label').text($(this).val().split('\\').pop());
     });
 
+    // submit sql file to import
     $("#import_db_form").validate({
         debug: true,
         errorClass: 'text-danger',
@@ -2599,8 +2575,43 @@ $(document).ready(function() {
         }
       });
 
+    // add remarks in manuscriot (managing editor only)
+    $("#remarks_form").validate({
+    debug: true,
+    errorClass: 'text-danger',
+    rules: {
+        man_remarks: {
+            required: true,
+        },
+    },
+    submitHandler: function() {
+        var form = $('#remarks_form');
+        var formdata = false;
+
+        if(window.FormData)
+        {
+            formdata = new FormData(form[0]);
+        }
+
+        formdata.append('man_id', man_id);
+
+        $.ajax({
+            type: 'POST',
+            url: base_url + "oprs/manuscripts/add_remarks/",
+            data : formdata ? formdata :form.serialize(),
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function(response) {
+            }
+        });
+        location.reload();
+    }
+    });
+
 });
 
+// count character for limited input in remarks
 function countChar(val) {
     var len = val.value.length;
     if (len >= 255) {
@@ -2610,8 +2621,10 @@ function countChar(val) {
     }
 };
 
+// process manuscript by adding reviewers
+// show modal with tinymcye
+// add many reviewers
 function process_man(id) {
-    
     
     revIncr = 1;
     $('#process_manuscript_form')[0].reset();
@@ -2625,10 +2638,11 @@ function process_man(id) {
     if($('#trk_rev1').val() == ''){
         load_email_content();       
     }
-
 }
 
+// show tracking modal
 function tracking(id, role, title, status) {
+    var manuscript_title = decodeURIComponent(title);
     man_id = id;
     $.ajax({
         type: "GET",
@@ -2678,7 +2692,7 @@ function tracking(id, role, title, status) {
 
                                 // var user_role = 'Managing Editor';
                                 var user_role = 'Submitted to reviewers';
-                                reviewers(id, trk_c, val.trk_remarks, role, val.trk_description, val.trk_process_datetime, title, status);
+                                reviewers(id, trk_c, val.trk_remarks, role, val.trk_description, val.trk_process_datetime, manuscript_title, status);
                             }
                         }
 
@@ -2716,6 +2730,7 @@ function tracking(id, role, title, status) {
     });
 }
 
+// get name of the processor of manuscript
 function get_processor(id, src, u_role) {
     var processor;
 
@@ -2748,6 +2763,7 @@ function get_processor(id, src, u_role) {
     return processor;
 }
 
+// export logs
 function log_export(act, msg) {
     $.ajax({
         type: "POST",
@@ -2761,6 +2777,7 @@ function log_export(act, msg) {
     });
 }
 
+// get name of a member
 function get_member(id) {
     var member;
 
@@ -2780,6 +2797,7 @@ function get_member(id) {
     return member;
 }
 
+// hide reviewer name
 function hide_rev(id, user) {
     var string;
 
@@ -2803,14 +2821,15 @@ function hide_rev(id, user) {
     return string;
 }
 
+// view manuscript full text or abstract
 function manus_view(file, type) {
    
     if(type == 'abs'){
         $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/abstracts/' + file));
-        // $('#manus_view').attr('src', base_url + 'assets/oprs/uploads/abstracts/' + file);
+        $('#manusModal .modal-title').text('Abstract');
     }else{
         $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/manuscripts/' + file));
-        // $('#manus_view').attr('src', base_url + 'assets/oprs/uploads/manuscripts/' + file);
+        $('#manusModal .modal-title').text('Full Text PDF');
     }   
     
 }
@@ -2821,6 +2840,7 @@ function unique(array) {
     });
 }
 
+// get all info of uploaded manuscript
 function view_manus(id, hide) {
 
     $('#uploadModal .table-borderless > tbody').empty();
@@ -2841,7 +2861,6 @@ function view_manus(id, hide) {
             }
         }
     });
-
 
     $.ajax({
         type: "GET",
@@ -2908,9 +2927,9 @@ function view_manus(id, hide) {
         }
     });
 
-
 }
 
+// show hidden buttons for uploading manuscript (unused)
 function show_hidden_manus() {
     $('#manuscript_form')[0].reset();
     $('#coauthors').empty();
@@ -2925,12 +2944,14 @@ function show_hidden_manus() {
     $('.table-borderless').hide();
 }
 
+// show all reviewers per manuscript
 function view_reviewers(id, time, title, status) {
 
+    var manuscript_title = decodeURIComponent(title);
     // if(status == 5 || status == 4 || status == 6){ $('#new_rev').hide(); }else{ $('#new_rev').show(); }
     if(status == 5 || status == 4){ $('#new_rev').hide(); }else{ $('#new_rev').show(); }
 
-    $('#reviewerModal p').text('TITLE : ' + title);
+    $('#reviewerModal p').text('TITLE : ' + manuscript_title);
 
     man_id = id;
 
@@ -2956,21 +2977,21 @@ function view_reviewers(id, time, title, status) {
                 $.each(data, function(key, val) {
 
                     revs.push(val.rev_email);
-                    var date = (val.rev_date_respond != null) ? moment(val.rev_date_respond, 'YYYY-MM-DD HH:mm').format("MMMM D, h:mm a") : '-';
+                    var date = (val.rev_date_respond != null) ? moment(val.rev_date_respond, 'YYYY-MM-DD HH:mm').format("MMMM D, YYYY h:mm a") : '-';
                     var req_status = (val.rev_status == 1) ? '<span class="badge badge-pill badge-success">ACCEPTED</span>' :
                         (val.rev_status == 0) ? '<span class="badge badge-pill badge-danger">DECLINED</span>' :
-                        (val.rev_status == 2) ? '<span class="badge badge-pill badge-secondary">PENDING</span>' :
-                        '<span class="badge badge-pill badge-danger">LAPSED</span>';
+                        (val.rev_status == 2) ? '<span class="badge badge-pill badge-secondary">PENDING REQUEST</span>' :
+                        '<span class="badge badge-pill badge-danger">LAPSED REQUEST</span>';
 
                     var stat = get_review_status(val.rev_id);
 
-                    var label = (stat == 4) ? '<span class="badge badge-pill badge-success">Recommended as submitted</span>' :
-                        (stat == 5) ? '<span class="badge badge-pill badge-warning">Recommended with minor revisions</span>' :
-                        (stat == 6) ? '<span class="badge badge-pill badge-warning">Recommended with major revisions</span>' :
-                        (stat == 7) ? '<span class="badge badge-pill badge-danger">Not recommended</span>' :
-                        (stat == 3) ? '<span class="badge badge-pill badge-danger">LAPSED</span>' :
-                        (stat == 2) ? '<span class="badge badge-pill badge-secondary">PENDING</span>' :
-                        '-';
+                    var label = ((stat == 4) ? '<span class="badge badge-pill badge-success">Recommended as submitted</span>' :
+                        ((stat == 5) ? '<span class="badge badge-pill badge-warning">Recommended with minor revisions</span>' :
+                        ((stat == 6) ? '<span class="badge badge-pill badge-warning">Recommended with major revisions</span>' :
+                        ((stat == 7) ? '<span class="badge badge-pill badge-danger">Not recommended</span>' :
+                        ((stat == 3) ? '<span class="badge badge-pill badge-danger">LAPSED REVIEW</span>' :
+                        ((stat == 2) ? '<span class="badge badge-pill badge-secondary">PENDING REVIEW</span>' :
+                        '-'))))));
 
                     if (val.rev_status == 3) {
                         $('#new_rev').attr('onclick', 'process_man(' + val.rev_man_id + ')');
@@ -3029,6 +3050,7 @@ function view_reviewers(id, time, title, status) {
     });
 }
 
+// get review submitted by reviewer
 function get_review_status(rev_id) {
 
     var jqXHR = $.ajax({
@@ -3043,6 +3065,7 @@ function get_review_status(rev_id) {
     return stat;
 }
 
+// display full text manuscript and evaluation form (reviewers only)
 function start_review(file, id, title, auth, hide_auth) {
     $('#manus_review').attr('src', base_url + 'assets/oprs/uploads/manuscripts/' + file);
     $('#rev_title').text(decodeURIComponent(title));
@@ -3051,8 +3074,10 @@ function start_review(file, id, title, auth, hide_auth) {
     man_id = id;
 }
 
+// get reviewers from clicking in tracking
 function reviewers(id, trk, rem, u_role, desc, time, title, status) {
-
+    
+    var manuscript_title = decodeURIComponent(title);
     $.ajax({
         type: "POST",
         url: base_url + "oprs/manuscripts/reviewers/" + id + "/" + time,
@@ -3061,7 +3086,7 @@ function reviewers(id, trk, rem, u_role, desc, time, title, status) {
         success: function(data) {
 
             if (u_role == 3) {
-                $('.usr' + trk).append('<small><a href="javascript:void(0);" onclick="view_reviewers(\'' + id + '\',\'' + time + '\',\'' + title + '\',\'' + status + '\')" data-toggle="modal" data-target="#reviewerModal">View added reviewers</small>');
+                $('.usr' + trk).append('<small><a href="javascript:void(0);" onclick="view_reviewers(\'' + id + '\',\'' + time + '\',\'' + manuscript_title + '\',\'' + status + '\')" data-toggle="modal" data-target="#reviewerModal">View added reviewers</small>');
             }
 
 
@@ -3075,6 +3100,7 @@ function reviewers(id, trk, rem, u_role, desc, time, title, status) {
 
 }
 
+// show review status in tracking
 function review(id, trk, rev_name) {
 
     $.ajax({
@@ -3085,10 +3111,10 @@ function review(id, trk, rev_name) {
         success: function(data) {
 
             $.each(data, function(key, val) {
-                var status = (val.scr_status == 4) ? '<span class="badge badge-success mr-1">Recommended as submitted</span>' :
-                    (val.scr_status == 5) ? '<span class="badge badge-warning mr-1">Recommended with minor revisions</span>' :
-                    (val.scr_status == 6) ? '<span class="badge badge-warning mr-1">Recommended with major revisions</span>' 
-                    : '<span class="badge badge-danger mr-1">Not recommended</span>';
+                var status = ((val.scr_status == 4) ? '<span class="badge badge-success mr-1">Recommended as submitted</span>' :
+                    ((val.scr_status == 5) ? '<span class="badge badge-warning mr-1">Recommended with minor revisions</span>' :
+                    ((val.scr_status == 6) ? '<span class="badge badge-warning mr-1">Recommended with major revisions</span>' :
+                    ((val.scr_status == 7) ? '<span class="badge badge-danger mr-1">Not recommended</span>' : ''))));
 
 
                 $('.usr' + trk).append('<a href="javascript:void(0);" onclick="view_score(\'' + id + '\',\'' + man_id + '\',\'' + rev_name + '\')" data-toggle="modal" data-target="#scoreModal"><span class="badge badge-info mr-1" >Score : ' + val.scr_total + '/100</span></a>' +
@@ -3103,6 +3129,7 @@ function review(id, trk, rev_name) {
     });
 }
 
+// truncate long remakrs in tracking
 function truncate(input, id, man_id, rev_name) {
     if (input.length > 150)
         return input.substring(0, 150) + '... <a href="javascript:void(0);" onclick="view_score(\'' + id + '\',\'' + man_id + '\',\'' + rev_name + '\')" data-toggle="modal" data-target="#scoreModal"><small>See more</small></a>';
@@ -3110,9 +3137,8 @@ function truncate(input, id, man_id, rev_name) {
         return input;
 };
 
+// generate review request email content in tinymce
 function generate_email(rid, mid) {
-
-
     $.ajax({
         type: "GET",
         url: base_url + "oprs/manuscripts/get_manuscript_by_id/"+man_id,
@@ -3226,11 +3252,12 @@ function generate_email(rid, mid) {
 
 }
 
+// stroe manuscript id in global variable
 function submit_final(id) {
     man_id = id;
 }
 
-//countdown
+// reviewer countdown
 function timer(date, r, tf) {
     var compareDate = new Date(date);
     compareDate.setDate(compareDate.getDate() + parseInt(tf)); //just for this demo today + 7 days
@@ -3241,6 +3268,7 @@ function timer(date, r, tf) {
 
 }
 
+// compute difference of two dates
 function timeBetweenDates(toDate, r) {
     var dateEntered = toDate;
     var now = new Date();
@@ -3273,12 +3301,14 @@ function timeBetweenDates(toDate, r) {
     }
 }
 
+// unused
 function dash_reviewer(id) {
     man_id = id;
     $('#form_journal').hide();
     load_email_content();
 }
 
+// show replaced variables in email content in tinymce
 function load_email_content(num = 1) {
     $.ajax({
         type: "GET",
@@ -3360,6 +3390,7 @@ function load_email_content(num = 1) {
 
 }
 
+// unused
 function approve_manus(id) {
     man_id = id;
 
@@ -3465,6 +3496,7 @@ function approve_manus(id) {
     });
 }
 
+// show score from tracking when score is clicked
 function view_score(id, manus_id, reviewer) {
 
     $.ajax({
@@ -3572,6 +3604,7 @@ function view_score(id, manus_id, reviewer) {
 
 // }
 
+// edit user
 function edit_user(id) {
     user_id = id;
     $('#editUserModal').modal('toggle');
@@ -3595,8 +3628,11 @@ function edit_user(id) {
                     $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
                         '<option value="7">Admin</option>' +
                         '<option value="9">Publication Committee</option>' +
+                        '<option value="3">Managing Editor</option>' +
                         '<option value="6">Manager</option>' +
-                        '<option value="3">Managing Editor</option>');
+                        '<option value="10">Editor</option>' +
+                        '<option value="11">Guest Editor</option>' +
+                        '<option value="12">Editor-in-Chief</option>');
                 }else{
                     $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
                     '<option value="3">Managing Editor</option>');
@@ -3627,6 +3663,7 @@ function edit_user(id) {
     });
 }
 
+// activate/deactive modal
 function act_deact_modal(val) {
     user_status = val;
     $('#confirmDeactivationModal').modal('toggle');
@@ -3638,6 +3675,7 @@ function act_deact_modal(val) {
     }
 }
 
+// activate/deactivate user
 function activate_deactivate_user() {
 
     $.ajax({
@@ -3649,10 +3687,9 @@ function activate_deactivate_user() {
             location.reload();
         }
     });
-
-    
 }
 
+// publish manuscripts (for finalization)
 function publish_articles(c, id)
 {
 
@@ -3738,6 +3775,7 @@ function publish_articles(c, id)
     }
 }
 
+// get user log
 function get_user_log(id)
 {
     var jqXHR = $.ajax({
@@ -3752,6 +3790,7 @@ function get_user_log(id)
     return data;
 }
 
+// get manuscript log
 function get_manuscript_log(id)
 {
     var jqXHR = $.ajax({
@@ -3771,6 +3810,7 @@ function get_manuscript_log(id)
     return jqXHR.responseText;
 }
 
+// open notifications
 function open_notif(data, id)
 {
     // console.log(data + ' ' + id);return false;
@@ -3789,6 +3829,7 @@ function open_notif(data, id)
 
 }
 
+// view manucscript from clicked notification
 function open_manuscript(data)
 {
     // console.log(data + ' ' + id);return false;
@@ -3798,7 +3839,7 @@ function open_manuscript(data)
 
 }
 
-
+// get notifications
 function notifications(){
 
     var user_id = $('.cookie_id').text();
@@ -3859,6 +3900,7 @@ function notifications(){
     }
 }
 
+// unused
 function notifications2()
 {
     var notif_count = 0;
@@ -3904,6 +3946,7 @@ function notifications2()
     });
 }
 
+// for final review of editor (for finalization)
 function final_review(id){
     $('#committeeModal').modal('toggle');
     
@@ -3922,6 +3965,7 @@ function final_review(id){
     });
 }
 
+// show publication committee review in tracking (for finalization)
 function com_review(id, trk){
     $.ajax({
         type: "GET",
@@ -3948,6 +3992,7 @@ function com_review(id, trk){
     });
 }
 
+// verify if feedback is submited already
 function verify_feedback(){
     $('#logoutModal').modal('toggle');
   
@@ -3966,22 +4011,25 @@ function verify_feedback(){
     }
   }
 
+// view feedback
 function view_feedbacks(){
-
-window.location.href = base_url + 'oprs/feedbacks';
-
+    window.location.href = base_url + 'oprs/feedbacks';
 }
 
+// confirmation modal before deleting manuscript
+// store mannuscript id to global variable
 function remove_manus(id){
 
-$('#confirmRemoveModal').modal('toggle');
-remove_man_id = id;
+    $('#confirmRemoveModal').modal('toggle');
+    remove_man_id = id;
 }
 
+// refresh
 function refresh_manus(){
-location.reload(0);
+    location.reload(0);
 }
 
+// show csf in table
 function view_csf_feedback(id){
 
     $('#csf_modal').modal('toggle');
@@ -4019,13 +4067,14 @@ function view_csf_feedback(id){
     });
 }
 
+// generate ui ux graph
 function generate_uiux_graph(){
     var ui_labels = [];
     var ui_values = [];
-    var ui_bgcolors = ['#52BE80','#F1C40F','#CD6155'];
+    var ui_bgcolors = ['#CD6155','#F1C40F','#52BE80'];
     var ux_labels = [];
     var ux_values = [];
-    var ux_bgcolors = ['#52BE80','#F1C40F','#CD6155'];
+    var ux_bgcolors = ['#CD6155','#F1C40F','#52BE80'];
   
     //ui
     $.ajax({
@@ -4170,9 +4219,9 @@ function generate_uiux_graph(){
       });
 }
 
+// generate csf graph
 function generate_csf_graph(id){
-
-    
+  
     id = $('#csf_questions').val();
 
     if(id > 0){
@@ -4257,6 +4306,11 @@ function generate_csf_graph(id){
             });
         }
     });
+}
+
+// store manuscript id to global variable for adding remarks
+function add_remarks(id){
+    man_id = id;
 }
 
 
