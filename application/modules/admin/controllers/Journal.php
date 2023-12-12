@@ -267,7 +267,39 @@ class Journal extends EJ_Controller {
 				if ($field != 'edt_id') {
 					$post[$field] = $this->input->post($field, TRUE);
 				}
+
+				// if($this->input->post('edt_photo_exist', TRUE) == ''){
+					if ($_FILES['edt_photo']['name'] != '') {
+						$file_string = str_replace(" ", "_", $_FILES['edt_photo']['name']);
+						$file_no_ext = preg_replace("/\.[^.]+$/", "", $file_string);
+						$clean_file = preg_replace('/[^A-Za-z0-9\-]/', '_', $file_no_ext);
+						$post['edt_photo'] = date('YmdHis') . '_' . $clean_file . '.jpg';
+						$upload_file = $post['edt_photo'];
+					}
+
+						
+				// }else{
+				// 	$post['edt_photo'] = $this->input->post('edt_photo_exist', TRUE);
+				// }
 			}
+
+			// if($this->input->post('edt_photo_exist', TRUE) == ''){
+				if ($_FILES['edt_photo']['name'] != '') {
+					// upload cover
+					$config_abstract['upload_path'] = './assets/uploads/editorial/';
+					$config_abstract['allowed_types'] = 'jpg';
+					$config_abstract['file_name'] = $upload_file;
+	
+					$this->load->library('upload', $config_abstract);
+					$this->upload->initialize($config_abstract);
+	
+					if (!$this->upload->do_upload('edt_photo')) {
+						$error = $this->upload->display_errors();
+					} else {
+						$data = $this->upload->data();
+					}
+				}
+			// }
 
 			$post['last_updated'] = date('Y-m-d H:i:s');
 			$where['edt_id'] = $this->input->post('edt_id', TRUE);
@@ -275,7 +307,54 @@ class Journal extends EJ_Controller {
 			$array_msg = array('icon' => 'oi-check', 'class' => 'alert-success', 'msg' => 'Editorial Updated.');
 			$this->session->set_flashdata('edtr_message', $array_msg);
 			redirect('admin/dashboard');
-		} else {
+		} else if ($method == 'add') {
+			$tableName = 'tbleditorials';
+			$result = $this->db->list_fields($tableName);
+			$post = array();
+
+			foreach ($result as $i => $field) {
+				if ($field != 'edt_id') {
+					if (!empty($this->input->post($field, TRUE))) {
+						$post[$field] = $this->input->post($field, TRUE);
+					}
+				}
+
+				if ($_FILES['edt_photo']['name'] != '') {
+					//journal cover
+					$file_string = str_replace(" ", "_", $_FILES['edt_photo']['name']);
+					$file_no_ext = preg_replace("/\.[^.]+$/", "", $file_string);
+					$clean_file = preg_replace('/[^A-Za-z0-9\-]/', '_', $file_no_ext);
+					$post['edt_photo'] = date('YmdHis') . '_' . $clean_file . '.jpg';
+					$upload_file = $post['edt_photo'];
+				} else {
+					$post['edt_photo'] = 'unavailable.jpg';
+				}
+
+			}
+
+			$post['date_created'] = date('Y-m-d H:i:s');
+
+			if ($_FILES['edt_photo']['name'] != '') {
+				// upload cover
+				$config_abstract['upload_path'] = './assets/uploads/editorial/';
+				$config_abstract['allowed_types'] = 'jpg|png|jpeg';
+				$config_abstract['file_name'] = $upload_file;
+
+				$this->load->library('upload', $config_abstract);
+				$this->upload->initialize($config_abstract);
+
+				if (!$this->upload->do_upload('edt_photo')) {
+					$error = $this->upload->display_errors();
+				} else {
+					$data = $this->upload->data();
+				}
+			}
+
+			$output = $this->Editorial_model->save_editorial($post);
+			$array_msg = array('icon' => 'oi-check', 'class' => 'alert-success', 'msg' => 'Editorial Added.');
+			$this->session->set_flashdata('edtr_message', $array_msg);
+			redirect('admin/dashboard');
+		} else{
 			$where['edt_id'] = $id;
 			$output = $this->Editorial_model->delete_editorial($where);
 			$array_msg = array('icon' => 'oi-check', 'class' => 'alert-success', 'msg' => 'Editorial Deleted.');

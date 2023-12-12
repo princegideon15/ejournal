@@ -33,6 +33,26 @@ class Client_journal_model extends CI_Model {
 		$this->load->database(ENVIRONMENT);
 	}
 
+	public function get_editorials_by_volume_year($vol, $year, $iss){
+		$this->db->select('*');
+		$this->db->from($this->editorials);
+		$this->db->where('edt_volume', $vol);
+		$this->db->where('edt_year', $year);
+		$this->db->where('edt_issue', $iss);
+		// $this->db->where('date_created', 'desc');
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	public function get_unique_editorials(){
+		$this->db->select('CONCAT("Volume ", edt_volume, ", ", edt_year) as volume, edt_volume, edt_year, edt_issue');
+		$this->db->from($this->editorials);
+		$this->db->group_by('CONCAT(edt_volume, edt_year, edt_issue)');
+		$this->db->order_by('edt_id', 'desc');
+		$query = $this->db->get();
+		return $query->result();
+	}
+
 	public function get_citation($id)
 	{
 		$citation_arr = array();
@@ -180,24 +200,24 @@ class Client_journal_model extends CI_Model {
 
 	/** this function get all journals */
 	public function get_journals() {
-		$this->db->select('jor_volume,jor_id');
+		$this->db->select('jor_volume, jor_id, jor_year');
 		$this->db->from($this->journals);
-		$this->db->join('tblarticles', 'tbljournals.jor_id = tblarticles.art_jor_id');
-		$this->db->order_by('jor_volume', 'desc');
+		$this->db->group_by('jor_volume');
+		$this->db->order_by('jor_year', 'desc');
 		$query = $this->db->get();
-		$result = $query->result();
+		return $query->result();
 
-		if ($result != null) {
-			foreach ($result as $row) {
-				$jor[$row->jor_id] = $row->jor_volume;
-			}
+		// if ($result != null) {
+		// 	foreach ($result as $row) {
+		// 		$jor[$row->jor_id] = $row->jor_volume;
+		// 	}
 
-			foreach ($jor as $j) {
-				$iss[$j] = $this->get_issue($j);
-			}
+		// 	foreach ($jor as $j) {
+		// 		$iss[$j] = $this->get_issue($j);
+		// 	}
 
-			return $iss;
-		}
+		// 	return $iss;
+		// }
 	}
 
 	/** this function get all editorial boards */
@@ -213,19 +233,47 @@ class Client_journal_model extends CI_Model {
 	public function get_issue($id) {
 		$this->db->select('jor_issue,jor_id');
 		$this->db->from($this->journals);
+		$this->db->join($this->articles,'jor_id = art_jor_id');
 		$this->db->where('jor_volume', $id);
-		$this->db->where('jor_id IN (select art_jor_id from tblarticles)');
+		$this->db->group_by('jor_issue');
+		// $this->db->where('jor_id IN (select art_jor_id from tblarticles)');
 
 		$query = $this->db->get();
 		return $query->result_array();
 	}
 
+	
+
+	/** this function get all issues under each journals */
+	public function get_issues($id) {
+		// SELECT jor_id, jor_volume, jor_issue, (select count(*) from tblarticles where art_jor_id like jor_id) from tbljournals where jor_volume = 'III' group by jor_issue
+		$this->db->select('*, (select count(*) from tblarticles where art_jor_id like jor_id) as articles');
+		$this->db->from($this->journals);
+		$this->db->where('jor_volume', $id);
+		$query = $this->db->get();
+		return $query->result();
+	}
+
 	/** this function get all articles */
 	public function get_articles($id) {
-		$this->db->select('a.*, j.jor_volume, j.jor_issue');
+		$this->db->select('a.*, j.jor_volume, j.jor_issue, jor_issn, jor_description, jor_month, jor_year');
 		$this->db->from($this->articles.' a');
 		$this->db->join($this->journals. ' j','a.art_jor_id = j.jor_id');
 		$this->db->where('a.art_jor_id', $id);
+		$this->db->order_by('a.art_title', 'asc');
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	/** this function get all articles */
+	public function get_index($id) {
+		$this->db->select('a.*, j.jor_volume, j.jor_issue, jor_issn');
+		$this->db->from($this->articles.' a');
+		$this->db->join($this->journals. ' j','a.art_jor_id = j.jor_id');
+
+		if($id != null){
+		$this->db->LIKE('a.art_title',  $id , 'after');
+		}
 		$this->db->order_by('a.art_title', 'asc');
 		$query = $this->db->get();
 		return $query->result();
@@ -340,6 +388,21 @@ class Client_journal_model extends CI_Model {
 		// echo $this->db->last_query();
 	}
 
+	/** this function retreive latest articles */
+	public function latest_journal() {
+
+		$this->db->select('a.*, j.jor_volume, j.jor_issue');
+		$this->db->from($this->articles.' a');
+		$this->db->join($this->journals. ' j','a.art_jor_id = j.jor_id');
+		$this->db->order_by('a.date_created', 'desc');
+		$this->db->limit(3);
+
+		$query = $this->db->get();
+		return $query->result();
+
+		// echo $this->db->last_query();
+	}
+
 	/** this function get author with coauthors */
 	public function get_author_coauthors($id) {
 		$a = array();
@@ -406,6 +469,7 @@ class Client_journal_model extends CI_Model {
 		$this->db->select('*');
 		$this->db->from($this->articles);
 		$this->db->where('art_author', $data);
+		$this->db->where('art_jor_id', $id);
 		$query = $this->db->get();
 		$result = $query->result();
 
@@ -415,14 +479,17 @@ class Client_journal_model extends CI_Model {
 		// }
 		// else
 		// {
-		$this->db->select('*');
-		$this->db->from($this->articles . ' a');
-		$this->db->join($this->coauthors . ' c', 'a.art_id = c.coa_art_id');
-		// $this->db->where('art_jor_id',$id);
-		$this->db->like('coa_name', $data, 'both');
-		$query2 = $this->db->get();
-		$result2 = $query2->result();
-		// return $this->db->last_query();
+			$this->db->select('*');
+			$this->db->from($this->coauthors);
+			// $this->db->from($this->articles . ' a');
+			// $this->db->join($this->coauthors . ' c', 'a.art_id = c.coa_art_id');
+			// $this->db->where('art_jor_id',$id);
+			$this->db->like('coa_name', $data);
+			$query2 = $this->db->get();
+			$result2 = $query2->result();
+			// return $this->db->last_query();
+
+		// 	return $query->result();
 		// }
 
 		return array('authors' => $result, 'coas' => $result2);
@@ -431,7 +498,7 @@ class Client_journal_model extends CI_Model {
 		$string = explode(', ', $key);
 		foreach ($string as $i => $key) {
 			if ($key == strip_tags($key)) {
-				echo ' <a class="text-dark" href="' . base_url() . 'client/Ejournal/search/3/' . $key . '">' . $key . '</a>; ';
+				echo ' <a class="text-primary" href="' . base_url() . 'client/ejournal/search/3/' . str_replace(' ','+',$key) . '">' . $key . '</a>; ';
 			} else {
 				echo $key . '; ';
 			}
@@ -471,9 +538,18 @@ class Client_journal_model extends CI_Model {
 		return $query->result();
 	}
 
+	public function get_client_by_id($id){
+
+		$this->db->select('*');
+		$this->db->from($this->clients);
+		$this->db->where('clt_id', $id);
+		$query = $this->db->get();
+		return $query->result();
+	}
+
 	public function get_client_info_citation($id){
 
-		$this->db->select('cite_name, cite_email, art_title, cite_member, cite.date_created as cite_date, art_author');
+		$this->db->select('cite_name, cite_affiliation, cite_country, cite_email, art_title, cite_member, cite.date_created as cite_date, art_author');
 		$this->db->from($this->citations . ' cite');
 		$this->db->join($this->articles, 'art_id = cite_art_id');
 		$this->db->where('row_id', $id);

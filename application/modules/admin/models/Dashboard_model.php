@@ -34,6 +34,7 @@ class Dashboard_model extends CI_Model {
 	 * @return  array  visitor data
 	 */
 	public function get_visitors() {
+		$this->db->limit(100);
 		$this->db->select('*');
 		$this->db->from($this->visitors);
 		$this->db->order_by('vis_datetime', 'desc');

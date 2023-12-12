@@ -1,9 +1,3 @@
-<!-- FOOTER -->
-<nav class="navbar navbar-dark bg-dark text-muted fixed-bottom ">
-	<span class="text-center"><?php $date = date('Y');
-$footer = 'Copyright &copy;' . $date . ' .  Department of Science and Technology | National Research Council of the Philippines | eJournal Admin';
-echo $footer;?></span>
-</nav>
 </body>
 <!-- global variable for export privilege -->
 <script type="text/javascript" >
@@ -16,12 +10,13 @@ var prv_exp = <?php echo $this->session->userdata('_prv_exp'); ?>;
 </script>
 <!-- /.global variable for export privilege -->
 
-<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.js"></script> -->
 <!-- chart -->
-<script type="text/javascript" src="<?php echo base_url("assets/js/chart.js"); ?>"></script>
-
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script src="https://code.highcharts.com/modules/export-data.js"></script>
+<script src="https://code.highcharts.com/modules/accessibility.js"></script>
 <!-- bootstrap defaults and plugins -->
-<script type="text/javascript" src="<?php echo base_url("assets/js/jquery-3.3.1.min.js"); ?>"></script>
+<script src="<?php echo base_url("assets/js/jquery-3.3.1.min.js"); ?>"></script>
 <script src="<?php echo base_url("assets/js/tether.min.js"); ?>"></script>
 <script src="<?php echo base_url("assets/js/popper.min.js"); ?>"></script>
 <script src="<?php echo base_url("assets/js/bootstrap.bundle.min.js"); ?>"></script>
@@ -68,5 +63,8 @@ var prv_exp = <?php echo $this->session->userdata('_prv_exp'); ?>;
 <!-- Autocomplete-->
 <script src="<?php echo base_url(); ?>assets/js/sh-autocomplete.min.js"></script>
 <!-- /.Autocomplete-->
+
+<!-- Text Editor TinyMCE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.9.2/tinymce.min.js"></script>
 
 </html>

@@ -43,6 +43,22 @@ class User_model extends CI_Model {
 	}
 
 	/**
+	 * Retrieve user role
+	 *
+	 * @param [int] $id		id
+	 * @return void
+	 */
+	public function get_role($id) {
+		$oprs = $this->load->database('dboprs', TRUE);
+		$oprs->select('*');
+		$oprs->from($this->roles);
+		$oprs->where('role_id', $id);
+		$query = $oprs->get();
+		$result = $query->result_array();
+		return $result[0]['role_name'];
+	}
+
+	/**
 	 * Retrieve user privelege
 	 *
 	 * @param [int] $id		prv_usr_id
@@ -414,6 +430,17 @@ class User_model extends CI_Model {
 		$oprs->from($this->users);
 		$query = $oprs->get();
 		return $query->num_rows();
+	}
+
+	public function check_existing_reviewer($id){
+		
+		$oprs = $this->load->database('dboprs', TRUE);
+		$oprs->select('*');
+		$oprs->from($this->users);
+		$oprs->where('usr_role', 5);
+		$oprs->where('usr_id', $id);
+		$query = $oprs->get();
+		return $query->result();
 	}
 }
 

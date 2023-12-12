@@ -38,7 +38,6 @@ var prv_exp = <?php echo (!empty($this->session->userdata('_prv_exp'))) ? $this-
 <script src="<?php echo base_url(); ?>assets/oprs/js/moment.min.js">moment().format();moment().tz("Asia/Manila").format();</script>
 <!-- Text Editor TinyMCE -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.9.2/tinymce.min.js"></script>
-<script>tinymce.init({selector: '#tiny_mail1'}); </script>
 <!-- Loading Screen -->
 <script type="text/javascript" src="<?php echo base_url("assets/oprs/js/jquery.loading.admin.js"); ?>"></script>
 <!-- Datatable buttons -->
@@ -49,5 +48,6 @@ var prv_exp = <?php echo (!empty($this->session->userdata('_prv_exp'))) ? $this-
 <script type="text/javascript" src="<?php echo base_url("assets/oprs/js/vfs_fonts.js"); ?>"></script>
 <script type="text/javascript" src="<?php echo base_url("assets/oprs/js/buttons.html5.min.js"); ?>"></script>
 <script type="text/javascript" src="<?php echo base_url("assets/oprs/js/buttons.print.min.js"); ?>"></script>
+
 </body>
 </html>

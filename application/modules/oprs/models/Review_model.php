@@ -43,7 +43,13 @@ class Review_model extends CI_Model {
 	public function update_review($post, $where, $flag) {
 		$oprs = $this->load->database('dboprs', TRUE);
 		$oprs->update($this->scores, $post, $where);
-		save_log_oprs(_UserIdFromSession(), 'reviewed', $flag, 5);
+
+		if($flag != 'nda'){
+			save_log_oprs(_UserIdFromSession(), 'reviewed', $flag, 5);
+		}else if($flag == 'ecert'){
+			save_log_oprs(_UserIdFromSession(), 'sent eCertification', $flag, 3);
+		}
+
 	}
 
 	public function update_score_lapse($post, $where) {
@@ -89,18 +95,13 @@ class Review_model extends CI_Model {
 	 */
 	public function get_rev_info($id) {
 		$oprs = $this->load->database('dboprs', TRUE);
-		if (strpos($id, 'R') !== false) {
-			$oprs->select('*');
-			$oprs->from($this->reviewers);
-			$oprs->where('rev_id', $id);
-			$query = $oprs->get();
-		} else if (strpos($id, 'NM') !== false) {
-			$oprs->select('*');
-			$oprs->from($this->non);
-			$oprs->where('non_usr_id', $id);
-			$query = $oprs->get();
-		} else {
-			$members = $this->load->database('members', TRUE);
+
+		// $oprs->select('*');
+		// $oprs->from($this->reviewers);
+		// $oprs->where('rev_id', $id);
+		// $query = $oprs->get();
+
+		$members = $this->load->database('members', TRUE);
 			$members->select('p.*, s.mpr_gen_specialization, e.*, t.title_name');
 			$members->from($this->profiles . ' p');
 			$members->join($this->specs . ' s', 's.mpr_usr_id = p.pp_usr_id');
@@ -108,7 +109,27 @@ class Review_model extends CI_Model {
 			$members->join($this->titles . ' t', 't.title_id = p.pp_title');
 			$members->where('p.pp_usr_id', $id);
 			$query = $members->get();
-		}
+
+		// if (strpos($id, 'R') !== false) {
+		// 	$oprs->select('*');
+		// 	$oprs->from($this->reviewers);
+		// 	$oprs->where('rev_id', $id);
+		// 	$query = $oprs->get();
+		// } else if (strpos($id, 'NM') !== false) {
+		// 	$oprs->select('*');
+		// 	$oprs->from($this->non);
+		// 	$oprs->where('non_usr_id', $id);
+		// 	$query = $oprs->get();
+		// } else {
+		// 	$members = $this->load->database('members', TRUE);
+		// 	$members->select('p.*, s.mpr_gen_specialization, e.*, t.title_name');
+		// 	$members->from($this->profiles . ' p');
+		// 	$members->join($this->specs . ' s', 's.mpr_usr_id = p.pp_usr_id');
+		// 	$members->join($this->employments . ' e', 'e.emp_usr_id = p.pp_usr_id');
+		// 	$members->join($this->titles . ' t', 't.title_id = p.pp_title');
+		// 	$members->where('p.pp_usr_id', $id);
+		// 	$query = $members->get();
+		// }
 		return $query->result();
 	}
 

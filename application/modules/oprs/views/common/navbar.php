@@ -1,7 +1,11 @@
 <?php $role = $this->session->userdata('_oprs_type_num');?>
 <nav class="navbar navbar-expand navbar-dark bg-dark fixed-top">
 
-  <a class="navbar-brand mr-1" href="dashboard"><img src="<?php echo base_url('assets/images/ejicon-07.png'); ?>" width="30" height="30" alt=""> eReview</a>
+  <a class="navbar-brand mr-1" href="dashboard">
+    <img src="<?php echo base_url("assets/oprs/img/nrcp.png"); ?>" height="40" width="40">
+    <img src="<?php echo base_url("assets/images/skms.png"); ?>" height="40" width="80">
+    <img src="<?php echo base_url("assets/oprs/img/ejicon-07.png"); ?>" height="40" width="40">
+  eReview</a>
   <!-- <button class="btn btn-link btn-sm text-white order-1 order-sm-0" id="sidebarToggle" href="#">
   <i class="fas fa-bars"></i>
   </button> -->
@@ -50,7 +54,7 @@
 </nav>
 <div id="wrapper">
   <div class="sidebar">
-    <ul class="navbar-nav" style="padding-top:3em;position:sticky;top:0em;height:100vh">
+    <ul class="navbar-nav" style="padding-top:5em;position:sticky;top:0em;height:100vh">
       <?php if ($role == 7 || $role == 8 || $role == 3) {?>
       <li class="nav-item">
         <a class="nav-link" href="dashboard">
@@ -100,6 +104,12 @@
           Feedbacks  <sup><span class="badge badge-dark" style="font-size:11px"><?php echo $feed_count; ?></span></sup>
         </a>
       </li>
+      <li class="nav-item ">
+        <a class="nav-link" href="emails">
+          <i class="fas fa-envelope-open"></i>
+          Email Notifcatiions
+        </a>
+      </li>
       <?php }?>
       <?php if ($role == 8) {?>
       <li class="nav-item ">
@@ -111,7 +121,7 @@
       <?php }?>
       <?php if ($role == 8 || $role == 3) {?>
       <li class="nav-item ">
-        <a class="nav-link text-info font-weight-bold" href="<?php echo base_url('../../ejournal/admin/dashboard'); ?>">
+        <a class="nav-link text-info font-weight-bold" href="<?php echo base_url('../../admin/dashboard'); ?>">
         <!-- <a class="nav-link" href="<?php echo base_url('../../admin/dashboard'); ?>"> -->
           <i class="fas fa-fw fa fa-book"></i>
           <span>eJournal</span>

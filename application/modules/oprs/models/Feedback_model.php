@@ -21,6 +21,7 @@ class Feedback_model extends CI_Model {
 	private $feedbacks = 'tblfeedbacks';
     private $users = 'tblusers';
     private $clients = 'tblclients';
+    private $citee = 'tblcitations';
     private $csf = 'tblservice_feedbacks';
 	public function __construct() {
 		parent::__construct();
@@ -28,12 +29,13 @@ class Feedback_model extends CI_Model {
 	}
 
 	/**
-	 * Retreive feedbacks
+	 * Retreive feedbacks TODO
 	 *
 	 * @return void
 	 */
 	public function get_feedbacks()
 	{
+		
         $CI =& get_instance();
         $oprs = $CI->load->database('dboprs', TRUE);
 
@@ -52,7 +54,7 @@ class Feedback_model extends CI_Model {
 	 * @param [int] $sys		
 	 * @return void
 	 */
-	public function get_name($id, $sys){
+	public function get_name($id, $sys, $src){
 
 		if($sys == 1 || $sys == 2){
 			$CI =& get_instance();
@@ -65,14 +67,26 @@ class Feedback_model extends CI_Model {
 			return $data['usr_username'];
 
 		}else{
-			
-			$this->db->select('clt_name');
-			$this->db->from($this->clients);
-			$this->db->where('clt_id', $id);
-			$data = $this->db->get()->row_array();
-			$return = (empty($data['clt_name'])) ? '-' : $data['clt_name'];
+			if($src == 1){
 
-			return $return;
+				$this->db->select('clt_name');
+				$this->db->from($this->clients);
+				$this->db->where('clt_id', $id);
+				$data = $this->db->get()->row_array();
+				$return = (empty($data['clt_name'])) ? '-' : $data['clt_name'];
+	
+				return $return;
+
+			}else if($src == 2){
+
+				$this->db->select('cite_name');
+				$this->db->from($this->citee);
+				$this->db->where('row_id', $id);
+				$data = $this->db->get()->row_array();
+				$return = (empty($data['cite_name'])) ? '-' : $data['cite_name'];
+
+				return $return;
+			}
 
 		}
 	}
@@ -134,6 +148,7 @@ class Feedback_model extends CI_Model {
 
 		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ui = 1 THEN "Sad" WHEN fb_rate_ui = 2 THEN "Neutral" else "Happy" end) as label');
 		$oprs->from($this->feedbacks);
+		$oprs->where($this->feedbacks.'.fb_rate_ui >', '0');
 		$oprs->group_by($this->feedbacks.'.fb_rate_ui');
 		$query = $oprs->get();
 		return $query->result();
@@ -145,6 +160,7 @@ class Feedback_model extends CI_Model {
 
 		$oprs->select('count(*) as total, (CASE WHEN fb_rate_ux = 1 THEN "Sad" WHEN fb_rate_ux = 2 THEN "Neutral" else "Happy" end) as label');
 		$oprs->from($this->feedbacks);
+		$oprs->where($this->feedbacks.'.fb_rate_ux >', '0');
 		$oprs->group_by($this->feedbacks.'.fb_rate_ux');
 		$query = $oprs->get();
 		return $query->result();

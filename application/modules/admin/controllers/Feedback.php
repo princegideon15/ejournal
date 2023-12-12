@@ -67,6 +67,7 @@ class Feedback extends EJ_Controller {
 		   
         }
         $post['fb_system'] = $sys; // 1-ejournal 2-oprs 3-client
+        $post['fb_source'] = $this->input->post('fb_source', TRUE); // 1-full text 2-citation 3-internal
         $post['date_created'] = date('Y-m-d H:i:s');
 
         $this->Feedback_model->save_feedback(array_filter($post));

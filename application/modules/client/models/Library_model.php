@@ -46,6 +46,7 @@ class Library_model extends CI_Model {
         $skms = $this->load->database('members', TRUE);
         $skms->select('*');
         $skms->from('tblservice_feedback_questions');
+        $skms->where('svc_fdbk_q_code', 'CSF-V2022');
 		$query = $skms->get();
 		return $query->result();
     }
@@ -57,7 +58,8 @@ class Library_model extends CI_Model {
         
         $skms = $this->load->database('members', TRUE);
         $skms->select('*');
-        $skms->from($table);
+        $skms->from($table);  
+        
 		$query = $skms->get();
 		return $query->result();
     }

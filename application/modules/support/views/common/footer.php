@@ -8,6 +8,8 @@
 <script src="<?php echo base_url(); ?>assets/oprs/sbadmin/vendor/datatables/dataTables.bootstrap4.js"></script>
 <!-- Custom scripts for all pages-->
 <script src="<?php echo base_url(); ?>assets/oprs/sbadmin/js/sb-admin.min.js"></script>
+<!-- Text Editor TinyMCE -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.9.2/tinymce.min.js"></script>
 <!-- Main jquery-->
 <script src="<?php echo base_url(); ?>assets/oprs/js/oprs.js"></script>
 <!-- Jquery Validate-->

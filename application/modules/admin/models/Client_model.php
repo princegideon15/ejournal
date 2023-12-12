@@ -62,6 +62,36 @@ class Client_model extends CI_Model {
 		// return $this->db->last_query();
 	}
 
+	public function get_clients_line_graph(){
+
+		$result_array = array();
+
+		$query = $this->db->get('tblsex');
+
+		foreach ($query->result() as $row)
+		{
+			$result_array[] = array($row->sex_id => array($row->sex_name => $this->get_line_sex($row->sex_id)));
+			// return $this->get_line_sex($row->sex_id);
+		}
+
+		return $result_array;
+	}
+
+	public function get_clients_monthly_line_graph(){
+
+		$result_array = array();
+
+		$query = $this->db->get('tblsex');
+
+		foreach ($query->result() as $row)
+		{
+			$result_array[] = array($row->sex_id => array($row->sex_name => $this->get_line_monthly_sex($row->sex_id)));
+			// return $this->get_line_sex($row->sex_id);
+		}
+
+		return $result_array;
+	}
+
 	/**
 	 * this function count total clients
 	 *
@@ -73,5 +103,62 @@ class Client_model extends CI_Model {
 		$query = $this->db->get();
 		return $query->num_rows();
 	}
+
+	public function get_line_sex($id){
+		$select = '';
+		$i = 1;
+		$union = '';
+
+		$this->db->select('YEAR(clt_download_date_time) as year');
+		$this->db->from($this->clients);
+		$this->db->group_by('year');
+		$query = $this->db->get();
+		$years = $query->result();
+		$year_count = $query->num_rows();
+
+		foreach($years as $row){
+
+			if($i < $year_count){
+				$union = 'UNION';
+			}else{
+				$union = '';
+			}
+
+			$select .= 'SELECT count(*) as total, IFNULL(YEAR(clt_download_date_time),'. $row->year .') AS label '.  
+			'FROM tblclients '. 
+			'WHERE clt_sex LIKE '. $id . 
+			' AND YEAR(clt_download_date_time) = '. $row->year . ' ' . $union . ' ';
+
+			$i++;	 
+
+		}
+		
+		$query = $this->db->query($select);
+			return $query->result_array();
+               
+    }
+
+	public function get_line_monthly_sex($id){
+		$select = '';
+		$union = '';
+
+		for($i=1; $i<=12;$i++){
+			if($i < 12){
+				$union = 'UNION';
+			}else{
+				$union = '';
+			}
+
+			$select .= 'SELECT count(*) as total, IFNULL(MONTH(clt_download_date_time),'.$i.') AS label '.  
+			'FROM tblclients WHERE clt_sex LIKE '. $id . 
+			' AND YEAR(clt_download_date_time) LIKE "%' . date('Y') .'%"'.
+			' AND  MONTH(clt_download_date_time) = '. $i . ' ' . $union . ' ';
+		}  
+		
+		$query = $this->db->query($select);
+		return $query->result_array();
+		// return $this->db->last_query();
+               
+    }
 }
 ?>

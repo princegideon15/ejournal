@@ -17,6 +17,7 @@
  * Copyright Notice:
  * Copyright (C) 2018 by the Department of Science and Technology - National Research Council of the Philiipines
  */
+
 class Backup extends EJ_Controller {
 
 	public function __construct() {
@@ -28,6 +29,11 @@ class Backup extends EJ_Controller {
 
 	}
     
+    /**
+     * Undocumented function
+     *
+     * @return void
+     */
     public function export(){
 
         // Database configuration
@@ -132,6 +138,11 @@ class Backup extends EJ_Controller {
         }
     }
 
+    /**
+     * Undocumented function
+     *
+     * @return void
+     */
     public function import(){
 
         // Name of the data file

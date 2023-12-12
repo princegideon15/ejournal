@@ -19,9 +19,120 @@ var revs = [];
 var revIncr = 1;
 var session_count = 0;
 var remove_man_id;
-
+var mail_content;
+var mail_title = '';
+var editor_mail_content;
+var minDate, maxDate;
 
 $(document).ready(function() {
+
+
+
+// DataTable.ext.search.push(function (settings, data, dataIndex) {
+//     var min = minDate.val();
+//     var max = maxDate.val();
+//     var date = new Date(data[7]);
+ 
+//     if (
+//         (min === null && max === null) ||
+//         (min === null && date <= max) ||
+//         (min <= date && max === null) ||
+//         (min <= date && date <= max)
+//     ) {
+//         return true;
+//     }
+//     return false;
+// });
+ 
+// initializeMinMax();
+ 
+// // DataTables initialisation
+// var table = $('#uiux_table').DataTable();
+ 
+// // Refilter the table
+// $('#min, #max').on('change', function () {
+//     table.draw();
+// });
+
+// $('#clear_filter').on('click', function(){
+//     $("#min").val('');
+//     $("#max").val('');
+//     initializeMinMax();
+//     table.draw();
+// });
+
+    // get members info
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/members/",
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                mems.push(val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name);
+                mem_mail.push(val.pp_email);
+                mem_num.push(val.pp_contact);
+                mem_spec.push(val.mpr_gen_specialization);
+                mem_id.push(val.pp_usr_id);
+                mem_exp.push(val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name + ' (' + val.mpr_gen_specialization + ')');
+                mem_aff.push(val.bus_name);
+                mem_prf.push(val.title_name);
+            });
+
+        }
+    });
+
+    // get email content for add reviewer
+    $.ajax({    
+        type: "GET",
+        url: base_url + "oprs/emails/get_email_content/"+2,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                mail_content = val.enc_content;
+            });
+        }
+    });
+
+     // get email content for add editor
+     $.ajax({    
+        type: "GET",
+        url: base_url + "oprs/emails/get_email_content/"+10,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                editor_mail_content = val.enc_content;
+            });
+        }
+    });
+
+    if($('#tiny_mail1').length > 0){
+        tinymce.init({
+            selector: '#tiny_mail1',
+            forced_root_block : false,
+            height : "750"
+        });
+    }
+
+    if($('#editor_tiny_mail1').length > 0){
+        tinymce.init({
+            selector: '#editor_tiny_mail1',
+            forced_root_block : false,
+            height : "750"
+        });
+    }
+
+    if($('#enc_content').length > 0){
+        tinymce.init({
+            selector: '#enc_content',
+            forced_root_block : false,
+            height : "400"
+        });
+    }
+
+
 
     // get notifications and count
     notifications();
@@ -299,6 +410,18 @@ $(document).ready(function() {
         }
     );
 
+    // all manuscripts;
+    var amt = $('#dataTable').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    amt.on( 'order.dt search.dt', function () {
+        amt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
     $('#collapse_new_table').DataTable();
     $('#collapse_lapreq_table').DataTable();
     $('#collapse_decreq_table').DataTable();
@@ -306,17 +429,151 @@ $(document).ready(function() {
     $('#controls_table').DataTable();
     // $('#uiux_table').DataTable();
     $('#cfs_table').DataTable();
-    $('#new_manus_table').DataTable();
-    $('#onreview_manus_table').DataTable();
-    $('#reviewed_manus_table').DataTable();
-    $('#final_manus_table').DataTable();
-    $('#for_p_manus_table').DataTable();
-    $('#pub_manus_table').DataTable();
-    $('#for_p_manus_table').DataTable();
-    $('#pub_manus_table').DataTable();
+
+    // new manuscripts
+    var nmt = $('#new_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    nmt.on( 'order.dt search.dt', function () {
+        nmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // on-review manuscripts
+    var ort = $('#onreview_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    ort.on( 'order.dt search.dt', function () {
+        ort.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // reviewed manuscripts
+    var rmt = $('#reviewed_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    rmt.on( 'order.dt search.dt', function () {
+        rmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // completed manuscripts
+    var cmt = $('#completed_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    cmt.on( 'order.dt search.dt', function () {
+        cmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // editorial review manuscripts
+    var erm = $('#editorial_reviews_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    erm.on( 'order.dt search.dt', function () {
+        erm.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // final manuscripts
+    var fmt = $('#final_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    fmt.on( 'order.dt search.dt', function () {
+        fmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // for publication manuscripts
+    var fpmt = $('#for_p_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    fpmt.on( 'order.dt search.dt', function () {
+        fpmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // for layout manuscripts
+    var flmt = $('#for_l_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    flmt.on( 'order.dt search.dt', function () {
+        flmt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // publishable manuscripts
+    var pt = $('#publishables_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    pt.on( 'order.dt search.dt', function () {
+        pt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // published manuscripts
+    var pbdt = $('#pub_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    pbdt.on( 'order.dt search.dt', function () {
+        pbdt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+    
+    pt.on( 'order.dt search.dt', function () {
+        pt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    // published manuscripts to other journal platforms
+    var emt = $('#existing_manus_table').DataTable({
+        "order": [[ 2, "desc" ]],
+        "columnDefs" : [{"targets":2, "type":"date"}]
+    });
+ 
+    emt.on( 'order.dt search.dt', function () {
+        emt.column(0, {search:'applied', order:'applied'}).nodes().each( function (cell, i) {
+            cell.innerHTML = i+1;
+        } );
+    } ).draw();
+
+    $('#reviews_table').DataTable();
+    $('#layout_table').DataTable();
     $('#collapse_reviewed_table').DataTable();
     $('#collapse_complete_table').DataTable();
     $('#collapse_reviewers_table').DataTable();
+    $('#email_contents_table').DataTable();
 
     // activity logs datatable
     if (prv_exp == 0) {
@@ -676,12 +933,11 @@ $(document).ready(function() {
             }]
         });
     }
-
     // ui/ux datatable in reports
     if (prv_exp == 0) {
-        $('#uiux_table').DataTable();
+          $('#uiux_table').DataTable();
     } else {
-        $('#uiux_table').DataTable({
+          $('#uiux_table').DataTable({
             dom: 'lBfrtip',
             buttons: [{
                 extend: 'copy',
@@ -722,7 +978,55 @@ $(document).ready(function() {
         });
     }
 
-    $('#dataTable').DataTable();
+    
+
+
+    // NDA in reports
+    if (prv_exp == 0) {
+        $('#report_nda_table').DataTable();
+    } else {
+        $('#report_nda_table').DataTable({
+            dom: 'lBfrtip',
+            buttons: [{
+                extend: 'copy',
+                text: 'Copy to clipboard',
+                messageTop: 'List of NDAs',
+                title: 'NATIONAL RESEARCH COUNCIL OF THE PHILIPPINES - NRPC Research Journal', 
+                action: function(e, dt, node, config) {
+                    log_export('Copy to clipboard', 'List of NDAs');
+                    $.fn.dataTable.ext.buttons.copyHtml5.action.call(this, e, dt, node, config);
+                }
+            }, {
+                extend: 'excel',
+                text: 'Export as Excel',
+                messageTop: 'List of NDAs',
+                title: 'NATIONAL RESEARCH COUNCIL OF THE PHILIPPINES - NRPC Research Journal', 
+                action: function(e, dt, node, config) {
+                    log_export('Export as Excel', 'List of NDAs');
+                    $.fn.dataTable.ext.buttons.excelHtml5.action.call(this, e, dt, node, config);
+                }
+            }, {
+                extend: 'pdf',
+                messageTop: 'List of NDAs',
+                text: 'Export as PDF',
+                title: 'NATIONAL RESEARCH COUNCIL OF THE PHILIPPINES' + '\n' + 'NRPC Research Journal', 
+                action: function(e, dt, node, config) {
+                    log_export('Export as PDF', 'List of NDAs');
+                    $.fn.dataTable.ext.buttons.pdfHtml5.action.call(this, e, dt, node, config);
+                }
+            }, {
+                extend: 'print',
+                messageTop: 'List of NDAs',
+                title: 'NATIONAL RESEARCH COUNCIL OF THE PHILIPPINES - NRPC Research Journal', 
+                action: function(e, dt, node, config) {
+                    log_export('Print', 'List of NDAs');
+                    window.print();
+                }
+            }]
+        });
+    }
+
+    
 
     // get titles (mr., ms. etc)
     $.ajax({
@@ -745,34 +1049,13 @@ $(document).ready(function() {
     });
 
     // slide effect of initial reviewer title
-    $('#trk_title1').editableSelect({
+    $('#trk_title1, #editor_title1').editableSelect({
         effects: 'slide'
     });
 
     // slide effect of journal volume
-    $('#jor_volume').editableSelect({
+    $('#process_manuscript_form #jor_volume, #edit_manuscript_form #jor_volume').editableSelect({
         effects: 'slide'
-    });
-
-    // get members info
-    $.ajax({
-        type: "GET",
-        url: base_url + "oprs/manuscripts/members/",
-        dataType: "json",
-        crossDomain: true,
-        success: function(data) {
-            $.each(data, function(key, val) {
-                mems.push(val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name);
-                mem_mail.push(val.pp_email);
-                mem_num.push(val.pp_contact);
-                mem_spec.push(val.mpr_gen_specialization);
-                mem_id.push(val.pp_usr_id);
-                mem_exp.push(val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name + ' (' + val.mpr_gen_specialization + ')');
-                mem_aff.push(val.bus_name);
-                mem_prf.push(val.title_name);
-            });
-
-        }
     });
 
     //get non-members info (unused)
@@ -814,13 +1097,18 @@ $(document).ready(function() {
     });
 
     // show member name on keyup
-    if ($('#trk_rev1').length)
+    if ($('#trk_rev1').length){
         autocomplete(document.getElementById("trk_rev1"), mem_exp, '#trk_rev_email1', '#trk_rev_num1', '#trk_rev_id1', '1', '#trk_rev_spec1', '#trk_title1');
-
-
+    }
+    // show member name on keyup
+    if ($('#editor_rev1').length){
+        autocomplete_editor(document.getElementById("editor_rev1"), mem_exp, '#editor_rev_email1', '#editor_rev_num1', '#editor_rev_id1', '1', '#editor_rev_spec1', '#editor_title1');
+    }
+        
     // show aythir name on keyup
-    if ($('#man_author').length)
+    if ($('#man_author').length){
         autocomplete_acoa(document.getElementById("man_author"), mem_exp, '#man_affiliation', '#man_email', '#man_usr_id');
+    }
 
     $('body').tooltip({
         selector: '[rel=tooltip]'
@@ -1145,13 +1433,7 @@ $(document).ready(function() {
             jor_year: {
                 required: true,
                 number: true,
-            },
-            art_year: {
-                required: true,
-            },
-            art_issue: {
-                required: true,
-            },
+            }
         },
         messages: {
             'trk_rev_email[]': {
@@ -1172,6 +1454,12 @@ $(document).ready(function() {
                 if (mail.indexOf("[FULL NAME]") != -1) {
                     req.push('FULL NAME');
                 }
+                if (mail.indexOf("[POSITION]") != -1) {
+                    req.push('POSITION');
+                }
+                if (mail.indexOf("[AFFILIATION]") != -1) {
+                    req.push('AFFILIATION');
+                }
                 if (mail.indexOf("[ADDRESS]") != -1) {
                     req.push('ADDRESS');
                 }
@@ -1189,7 +1477,6 @@ $(document).ready(function() {
 
             if (req.length == 0) {
                 $('#processReviewModal').modal('toggle');
-                // $('#reviewerModal').modal('toggle');
             } else {
 
                 var alert = '	<div class="alert alert-danger" role="alert"><h6 class="alert-heading"><span class="fa fa-times-circle"></span> Please enter missing information:</h6>';
@@ -1206,36 +1493,129 @@ $(document).ready(function() {
         }
     });
 
-    // publish manuscript to ejournal
-    $("#publish_form").validate({
+    // process manuscript validation
+    $("#edit_manuscript_form").validate({
         debug: true,
         errorClass: 'text-danger',
+        rules: {
+            'editor_title[]': {
+                required: true,
+            },
+            'editor_rev_spec[]': {
+                required: true,
+            },
+            'editor_rev[]': {
+                required: true,
+                uniqueName: true,
+            },
+            'editor_rev_email[]': {
+                required: true,
+                email: true,
+                uniqueEmail: true,
+                repeatEmail: true,
+            },
+            jor_volume: {
+                required: true,
+            },
+            jor_issue: {
+                required: true,
+            },
+            jor_year: {
+                required: true,
+                number: true,
+            }
+        },
+        messages: {
+            'editor_rev_email[]': {
+                uniqueEmail: "Email already in use",
+                repeatEmail: "Email can not be repeated",
+            },
+            'editor_rev[]': {
+                uniqueName: "Name can not be repeated",
+            }
+        },
         submitHandler: function() {
 
-            $('body').loading('start');
+            var x = tinyMCE.editors.length;
+            for (var i = 1; i <= x; i++) {
+                var mail = $(tinymce.get('editor_tiny_mail' + i).getBody()).html();
+                var req = [];
 
-            var form = $('#publish_form');
-       
-            if (window.FormData) {
-                formdata = new FormData(form[0]);
+                if (mail.indexOf("[FULL NAME]") != -1) {
+                    req.push('FULL NAME');
+                }
+                if (mail.indexOf("[POSITION]") != -1) {
+                    req.push('POSITION');
+                }
+                if (mail.indexOf("[DEPARTMENT]") != -1) {
+                    req.push('DEPARTMENT');
+                }
+                if (mail.indexOf("[AFFILIATION]") != -1) {
+                    req.push('AFFILIATION');
+                }
+                if (mail.indexOf("[ADDRESS]") != -1) {
+                    req.push('ADDRESS');
+                }
+                if (mail.indexOf("[TITLE]") != -1) {
+                    req.push('TITLE');
+                }
+                if (mail.indexOf("[LAST NAME]") != -1) {
+                    req.push('LAST NAME');
+                }
+                if (mail.indexOf("[SPECIALIZATION]") != -1) {
+                    req.push('SPECIALIZATION');
+                }
+                var rev = i;
             }
 
-            $.ajax({
-                url: base_url + "oprs/manuscripts/publish/",
-                data: formdata ? formdata : form.serialize(),
-                cache: false,
-                contentType: false,
-                processData: false,
-                crossDomain: true,
-                type: 'POST',
-                success: function(data) {
-                    location.reload();
-                    // console.log(data);
-                }
-            });
- 
+            if (req.length == 0) {
+                $('#editorReviewModal').modal('toggle');
+            } else {
+
+                var alert = '	<div class="alert alert-danger" role="alert"><h6 class="alert-heading"><span class="fa fa-times-circle"></span> Please enter missing information:</h6>';
+                var al_num = 1;
+
+                $.each(req, function(key, val) {
+                    alert += '(' + (al_num++) + ') ' + val + '</br>';
+                });
+
+                alert += '</div>';
+                $('#editor_tiny_mail' + rev).next().remove();
+                $('#editor_tiny_mail' + rev).after(alert);
+            }
         }
     });
+
+    // publish manuscript to ejournal
+    // $("#publish_form").validate({
+    //     debug: true,
+    //     errorClass: 'text-danger',
+    //     submitHandler: function() {
+
+    //         $('body').loading('start');
+
+    //         var form = $('#publish_form');
+       
+    //         if (window.FormData) {
+    //             formdata = new FormData(form[0]);
+    //         }
+
+    //         $.ajax({
+    //             url: base_url + "oprs/manuscripts/publish/",
+    //             data: formdata ? formdata : form.serialize(),
+    //             cache: false,
+    //             contentType: false,
+    //             processData: false,
+    //             crossDomain: true,
+    //             type: 'POST',
+    //             success: function(data) {
+    //                 location.reload();
+    //                 // console.log(data);
+    //             }
+    //         });
+ 
+    //     }
+    // });
 
     // final review 
     $("#final_review_form").validate({  
@@ -1283,70 +1663,77 @@ $(document).ready(function() {
     // replaced [FULL NAME] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_rev[]"]', function() {
 
-        var id = $(this).attr('id');
-        var pos = id.substr(id.length - 1);
-
-        $('#rev_header' + pos).text($(this).val());
-        $('#rev_header_mail' + pos).text($(this).val());
-
-        var rev_name_blur = localStorage.getItem('rev_name_blur');
-        localStorage.setItem('rev_name_blur', $(this).val());
-        var text = $(this).val();
-        var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
-
-        if (mail.indexOf('[FULL NAME]') != -1) {
-
-            var new_mail = mail.replace('[FULL NAME]', text);
-        } else {
-            var new_mail = mail.replace(rev_name_blur, text);
+        if($(this).val() != ''){
+            var id = $(this).attr('id');
+            var pos = id.substr(id.length - 1);
+    
+            $('#rev_header' + pos).text($(this).val());
+            $('#rev_header_mail' + pos).text($(this).val());
+    
+            var rev_name_blur = localStorage.getItem('rev_name_blur');
+            localStorage.setItem('rev_name_blur', $(this).val());
+            var text = $(this).val();
+            var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
+    
+            if (mail.indexOf('[FULL NAME]') != -1) {
+    
+                var new_mail = mail.replace('[FULL NAME]', text);
+            } else {
+                var new_mail = mail.replace(rev_name_blur, text);
+            }
+     
+            $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
         }
- 
-        $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
+
     });
 
     // replaced [TITLE] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_title[]"]', function() {
 
-        var id = $(this).attr('id');
-        var pos = id.substr(id.length - 1);
-
-        var rev_title_blur = localStorage.getItem('rev_title_blur');
-        localStorage.setItem('rev_title_blur', $(this).val());
-        var text = $(this).val();
-        var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
-
-        if (mail.indexOf('[TITLE]') != -1) {
-
-            var new_mail = mail.replace('[TITLE]', text);
-        } else {
-            var new_mail = mail.replace(rev_title_blur, text);
+        if($(this).val() != ''){
+            var id = $(this).attr('id');
+            var pos = id.substr(id.length - 1);
+    
+            var rev_title_blur = localStorage.getItem('rev_title_blur');
+            localStorage.setItem('rev_title_blur', $(this).val());
+            var text = $(this).val();
+            var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
+    
+            if (mail.indexOf('[TITLE]') != -1) {
+    
+                var new_mail = mail.replace('[TITLE]', text);
+            } else {
+                var new_mail = mail.replace(rev_title_blur, text);
+            }
+     
+            $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
         }
- 
-        $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
     });
 
     // replaced [SPECIALIZATION] in tinymce after entering/select reviewer
     $(document).on('blur', 'input[name="trk_rev_spec[]"]', function() {
 
-        var id = $(this).attr('id');
-        var pos = id.substr(id.length - 1);
-
-        var rev_spec_blur = localStorage.getItem('rev_spec_blur');
-        localStorage.setItem('rev_spec_blur', $(this).val());
-        var text = $(this).val();
-        var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
-
-        if (mail.indexOf('[SPECIALIZATION]') != -1) {
-
-            var new_mail = mail.replace('[SPECIALIZATION]', text);
-        } else {
-            var new_mail = mail.replace(rev_spec_blur, text);
+        if($(this).val() != ''){
+            var id = $(this).attr('id');
+            var pos = id.substr(id.length - 1);
+    
+            var rev_spec_blur = localStorage.getItem('rev_spec_blur');
+            localStorage.setItem('rev_spec_blur', $(this).val());
+            var text = $(this).val();
+            var mail = $(tinymce.get('tiny_mail'+pos).getBody()).html();
+    
+            if (mail.indexOf('[SPECIALIZATION]') != -1) {
+    
+                var new_mail = mail.replace('[SPECIALIZATION]', text);
+            } else {
+                var new_mail = mail.replace(rev_spec_blur, text);
+            }
+     
+            $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
         }
- 
-        $(tinymce.get('tiny_mail'+pos).getBody()).html(new_mail);
     });
 
-    // submit final process (for finalization)
+    // send to reviewers and send email
     $('#submit_final_process').click(function() {
 
         $('.modal').modal('hide');
@@ -1362,6 +1749,35 @@ $(document).ready(function() {
 
         $.ajax({
             url: base_url + "oprs/manuscripts/process/" + man_id,
+            data: formdata ? formdata : form.serialize(),
+            cache: false,
+            contentType: false,
+            processData: false,
+            type: 'POST',
+            crossDomain: true,
+            success: function(data, textStatus, jqXHR) {
+                location.reload();
+                // console.log(data);
+            }
+        });
+    });
+
+    // send to editor and send email
+    $('#submit_to_editor').click(function() {
+
+        $('.modal').modal('hide');
+
+        $('body').loading('start');
+
+        var form = $('#edit_manuscript_form');
+        var fromdata = false;
+        if (window.FormData) {
+            formdata = new FormData(form[0]);
+        }
+        var formAction = form.attr('action');
+
+        $.ajax({
+            url: base_url + "oprs/manuscripts/editor/" + man_id,
             data: formdata ? formdata : form.serialize(),
             cache: false,
             contentType: false,
@@ -1507,6 +1923,11 @@ $(document).ready(function() {
     });
 
     // remove added co-author
+    $('#report_reviewer_table').on('click', 'button', function() {
+        $(this).closest('button').replaceWith("<span class='badge badge-success'><span class='fas fa-check-circle'> eCertification</span<");
+    });
+
+    // change button on send ecretification
     $('#coauthors').on('click', 'a', function() {
         $(this).closest('#added_coa').remove();
     });
@@ -1522,8 +1943,10 @@ $(document).ready(function() {
         $('#rev_acc .collapse').removeClass('show');
         $('#rev_acc_mail .collapse').removeClass('show');
 
-        var html = '';
+              
         revIncr++;
+
+        var html = '';
 
         html = '<div class="card" id="added_rev">' +
             '<div class="card-header p-0" id="heading' + revIncr + '"  data-toggle="collapse" data-target="#collapse' + revIncr + '">' +
@@ -1531,7 +1954,7 @@ $(document).ready(function() {
             '<button class="btn btn-link" type="button">' +
             '<span class="fa fa-address-card"></span> Reviewer ' + revIncr + ' : <span id="rev_header' + revIncr + '"></span>' +
             '</button>' +
-            '<button type="button" class="btn btn-link float-right text-danger"><span class="fa fa-trash"></span></button>' +
+            '<button type="button" class="btn btn-link float-right text-danger"><span class="fa fa-trash" id="' + revIncr + '"></span></button>' +
             '</h5>' +
             '</div>' +
             '<div id="collapse' + revIncr + '" class="collapse show" data-parent="#rev_acc">' +
@@ -1608,20 +2031,31 @@ $(document).ready(function() {
             
             
         $('#rev_acc_mail').append(mail);
-        tinymce.init({
-            selector: '#tiny_mail' + revIncr
-        });
+
 
         $('#trk_rev' + revIncr).focus();
         load_email_content(revIncr);
+  
+
+        
+// console.log(revIncr)
 
     });
 
     // remove added reviewer
     $('#rev_acc').on('click', '.btn .fa-trash', function() {
+        
         $(this).closest('#added_rev').remove();
         var find_mail = $(this).closest('#added_rev').find('.btn-link').text();
         $('#rev_acc_mail').find('.card:contains(' + find_mail + ')').remove();
+
+        var id = $(this).attr("id");
+        // alert(id);
+     
+        tinyMCE.get("tiny_mail" + id).remove();
+
+
+        // revIncr--;
     });
 
     // rename card header based on selected reviewer
@@ -1766,29 +2200,29 @@ $(document).ready(function() {
         }
     });
 
-    // replaced (volume) in tinymce after entering/select reviewer
-    $("#jor_volume").blur(function() {
+   // replaced (volume) in tinymce after entering/select reviewer
+   $("#jor_volume").blur(function() {
 
-        var jor_vol = localStorage.getItem('jor_vol');
-        localStorage.setItem('jor_vol', $(this).val());
-        var text = $(this).val();
-        var mail = $(tinymce.get('tiny_mail1').getBody()).html();
+    var jor_vol = localStorage.getItem('jor_vol');
+    localStorage.setItem('jor_vol', $(this).val());
+    var text = $(this).val();
+    var mail = $(tinymce.get('tiny_mail1').getBody()).html();
 
-        if (mail.indexOf('(volume)') != -1) {
-            var new_mail = mail.replace('(volume),', 'Volume ' + text.toUpperCase() + ', ');
-        } else {
-            var new_mail = mail.replace('Volume ' + jor_vol.toUpperCase() + ', ', 'Volume ' + text.toUpperCase() + ', ');
-        }
+    if (mail.indexOf('[VOLUME]') != -1) {
+        var new_mail = mail.replace('[VOLUME]', 'Volume ' + text.toUpperCase());
+    } else {
+        var new_mail = mail.replace('Volume ' + jor_vol.toUpperCase(), 'Volume ' + text.toUpperCase());
+    }
 
-        var tiny_count = $('#rev_acc_mail .card-body').length;
+    var tiny_count = $('#rev_acc_mail .card-body').length;
 
-        for (i = 1; i <= tiny_count; i++) {
-            $(tinymce.get('tiny_mail' + i).getBody()).html(new_mail);
-        }
+    for (i = 1; i <= tiny_count; i++) {
+        $(tinymce.get('tiny_mail' + i).getBody()).html(new_mail);
+    }
     });
 
-    // replaced (issue) in tinymce after entering/select reviewer 
-    $("#jor_issue").change(function() {
+    // replaced [ISSUE] in tinymce after entering/select reviewer 
+    $("#jor_issue").blur(function() {
 
         var jor_iss = localStorage.getItem('jor_issue');
         localStorage.setItem('jor_issue', $(this).val());
@@ -1797,9 +2231,9 @@ $(document).ready(function() {
         var prefix = text >= 5 ? 'Special Issue No. ' + (text - 4) : 'Issue ' + text;
         var prefix_rep = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
 
-        if (mail.indexOf('(issue)') != -1) {
+        if (mail.indexOf('[ISSUE]') != -1) {
 
-            var new_mail = mail.replace('(issue)', prefix);
+            var new_mail = mail.replace('[ISSUE]', prefix);
         } else {
             var new_mail = mail.replace(prefix_rep, prefix);
         }
@@ -1809,6 +2243,29 @@ $(document).ready(function() {
         for (i = 1; i <= tiny_count; i++) {
             $(tinymce.get('tiny_mail' + i).getBody()).html(new_mail);
         }
+    });
+
+    // replaced [YEAR] in tinymce after entering/select reviewer 
+    $("#jor_year").blur(function() {
+    
+
+        var jor_year = localStorage.getItem('jor_year');
+        localStorage.setItem('jor_year', $(this).val());
+        var mail = $(tinymce.get('tiny_mail1').getBody()).html();
+    
+        if (mail.indexOf('[YEAR]') != -1) {
+            var new_mail = mail.replace('[YEAR]', $(this).val());
+        } else {
+            var new_mail = mail.replace(jor_year, $(this).val());
+        }
+
+        var tiny_count = $('#rev_acc_mail .card-body').length;
+
+        for (i = 1; i <= tiny_count; i++) {
+            $(tinymce.get('tiny_mail' + i).getBody()).html(new_mail);
+        }
+
+        
     });
 
     // show journal counts per year 
@@ -1839,23 +2296,23 @@ $(document).ready(function() {
     });
 
     // show article counts per year
-    $('#jor_year, #jor_issue, #jor_volume').on('change', function() {
+    // $('#jor_year, #jor_issue, #jor_volume').on('change', function() {
 
-        $('#jor_year').next('small').remove();
+    //     $('#jor_year').next('small').remove();
 
-        if ($('#jor_year').val().length != 0) {
-            $.ajax({
-                type: "POST",
-                url: base_url + "oprs/manuscripts/get_jor_id/" + $('#jor_volume').val() + "/" + $('#jor_issue').val() + "/" + $('#jor_year').val(),
-                dataType: "json",
-                crossDomain: true,
-                success: function(data) {
+    //     if ($('#jor_year').val().length != 0) {
+    //         $.ajax({
+    //             type: "POST",
+    //             url: base_url + "oprs/manuscripts/get_jor_id/" + $('#jor_volume').val() + "/" + $('#jor_issue').val() + "/" + $('#jor_year').val(),
+    //             dataType: "json",
+    //             crossDomain: true,
+    //             success: function(data) {
 
-                    $('#jor_year').after('<small class="text-primary"><span class="fa fa-exclamation-circle"></span> ' + data + ' Article/s</small>');
-                }
-            });
-        }
-    });
+    //                 $('#jor_year').after('<small class="text-primary"><span class="fa fa-exclamation-circle"></span> ' + data + ' Article/s</small>');
+    //             }
+    //         });
+    //     }
+    // });
 
     // replaced (volume issue) in tinymce after entering/select reviewer
     $("#art_issue").on('change', function() {
@@ -1868,8 +2325,8 @@ $(document).ready(function() {
 
         var mail = $(tinymce.get('tiny_mail1').getBody()).html();
 
-        if (mail.indexOf('(volume)') != -1) {
-            var new_mail = mail.replace('(volume), (issue)', text);
+        if (mail.indexOf('[VOLUME]') != -1) {
+            var new_mail = mail.replace('[VOLUME], [ISSUE]', text);
         } else {
             var new_mail = mail.replace(art_iss, text);
         }
@@ -1887,13 +2344,13 @@ $(document).ready(function() {
         var jor_iss = localStorage.getItem('jor_issue');
 
         var mail = $(tinymce.get('tiny_mail1').getBody()).html();
-        var new_mail = mail.replace('Volume ' + jor_vol.toUpperCase() + ', ', '(volume),');
+        var new_mail = mail.replace('Volume ' + jor_vol.toUpperCase() + ', ', '[VOLUME],');
 
         if (jor_iss >= 5) {
 
-            var new_mail = new_mail.replace('Special Issue No. ' + (jor_iss - 4), '(issue)');
+            var new_mail = new_mail.replace('Special Issue No. ' + (jor_iss - 4), '[ISSUE]');
         } else {
-            var new_mail = new_mail.replace('Issue ' + jor_iss, '(issue)');
+            var new_mail = new_mail.replace('Issue ' + jor_iss, '[ISSUE]');
         }
 
 
@@ -1920,8 +2377,8 @@ $(document).ready(function() {
         localStorage.setItem('jor_issue', $.trim(x[1]));
 
         var mail = $(tinymce.get('tiny_mail1').getBody()).html();
-        var new_mail = mail.replace(x[0], '(volume)');
-        var new_mail = new_mail.replace($.trim(x[1]), '(issue)');
+        var new_mail = mail.replace(x[0], '[VOLUME]');
+        var new_mail = new_mail.replace($.trim(x[1]), '[ISSUE]');
 
 
         var tiny_count = $('#rev_acc_mail .card-body').length;
@@ -1936,16 +2393,16 @@ $(document).ready(function() {
     });
 
     // load content of tinymce on adding new reviewer
-    $('#new_rev').click(function() {
-        $('#form_journal').hide();
-        $('#process_manuscript_form')[0].reset();
-        $('#rev_acc .card').not(':first').remove();
-        $('#rev_acc #collapse1').addClass('show');
-        $('#rev_acc_mail .card').not(':first').remove();
-        $('#rev_acc_mail #collapse_mail1').addClass('show');
-        load_email_content();
+    // $('#new_rev').click(function() {
+    //     $('#form_journal').hide();
+    //     $('#process_manuscript_form')[0].reset();
+    //     $('#rev_acc .card').not(':first').remove();
+    //     $('#rev_acc #collapse1').addClass('show');
+    //     $('#rev_acc_mail .card').not(':first').remove();
+    //     $('#rev_acc_mail #collapse_mail1').addClass('show');
+    //     load_email_content();
     
-    });
+    // });
 
     // check if multiple email in one manuscript
     $('#get_email').change(function() {
@@ -2133,9 +2590,11 @@ $(document).ready(function() {
     });
 
     // dynamicallly show user role per system access
-    $('#usr_sys_acc').change(function() {
-        $('#usr_role').prop('disabled', false);
-
+    $('#usr_sys_acc').on('change', function() {
+      
+        
+   $('#usr_role').prop("disabled", true);
+    $('#usr_role').removeAttr("disabled");
         $('#usr_role').empty();
 
         if ($(this).val() == 1) {
@@ -2150,7 +2609,8 @@ $(document).ready(function() {
                 '<option value="6">Manager</option>' +
                 '<option value="10">Editor</option>' +
                 '<option value="11">Guest Editor</option>' +
-                '<option value="12">Editor-in-Chief</option>');
+                '<option value="12">Editor-in-Chief</option> '+
+                '<option value="13">Layout</option>');
         }else{
             $('#usr_role').append('<option value="" selected>Select User Role</option>' +
                 '<option value="3">Managing Editor</option>');
@@ -2158,29 +2618,30 @@ $(document).ready(function() {
     });
 
     // edit user
-    $('#editUserModal #usr_sys_acc').change(function() {
-        $('#editUserModal #usr_role').prop('disabled', false);
+    // $('#editUserModal #usr_sys_acc').change(function() {
+    //     $('#editUserModal #usr_role').prop('disabled', false);
 
-        $('#editUserModal #usr_role').empty();
+    //     $('#editUserModal #usr_role').empty();
 
-        if ($(this).val() == 1) {
-            $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
-                '<option value="7">Admin</option>' +
-                '<option value="6">Manager</option>');
-        }else if($(this).val() == 2) {
-            $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
-                '<option value="7">Admin</option>' +
-                '<option value="9">Publication Committee</option>' +
-                '<option value="3">Managing Editor</option>' +
-                '<option value="6">Manager</option>' +
-                '<option value="10">Editor</option>' +
-                '<option value="11">Guest Editor</option>' +
-                '<option value="12">Editor-in-Chief</option>');
-        }else{
-            $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
-                '<option value="3">Managing Editor</option>');
-        }
-    });
+    //     if ($(this).val() == 1) {
+    //         $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
+    //             '<option value="7">Admin</option>' +
+    //             '<option value="6">Manager</option>');
+    //     }else if($(this).val() == 2) {
+    //         $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
+    //             '<option value="7">Admin</option>' +
+    //             '<option value="9">Publication Committee</option>' +
+    //             '<option value="3">Managing Editor</option>' +
+    //             '<option value="6">Manager</option>' +
+    //             '<option value="10">Editor</option>' +
+    //             '<option value="11">Guest Editor</option>' +
+    //             '<option value="12">Editor-in-Chief</option> '+
+    //             '<option value="13">Layout</option>');
+    //     }else{
+    //         $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
+    //             '<option value="3">Managing Editor</option>');
+    //     }
+    // });
 
     // show users privileges
     $('#user_control').change(function() {
@@ -2609,6 +3070,159 @@ $(document).ready(function() {
     }
     });
 
+    // display nda file in text field
+    $('#scr_nda').change(function(){
+    $('.custom-file-label').text($(this).val().split('\\').pop());
+    });
+
+    // display nda file in text field
+    $('#edit_file').change(function(){
+    $('.custom-file-label').text($(this).val().split('\\').pop());
+    });
+
+      // submit nda file 
+    $('#submit_nda').on('submit', function(e){
+        var form = $('#submit_nda');
+        var formdata = false;
+
+        if(window.FormData)
+        {
+            formdata = new FormData(form[0]);
+        }
+
+        $.ajax({
+            type: "POST",
+            url: base_url + 'oprs/manuscripts/upload_nda',
+            data : formdata ? formdata :form.serialize(),
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                window.location.reload();
+            }
+        });
+    });
+
+    $('#update_email_content_btn').click(function(){
+        var enc_content = tinyMCE.get('enc_content').getContent();
+        var formData = $('#email_content_form').serializeArray();
+        formData.push({ name: 'enc_content', value: enc_content });
+        
+        $.ajax({
+            type: "POST",
+            url: base_url + 'oprs/emails/update_email_content/',
+            data:  formData,
+            cache: false,
+            crossDomain: true,
+            success: function(data) {
+            }
+        });
+
+        location.reload();
+    });
+
+
+    $("#submit_editorial_review_form").validate({
+        debug: true,
+        errorClass: 'text-danger',
+        rules: {
+            edit_file: {
+                required: true,
+            },
+        },
+        messages: {},
+        errorElement : 'div',
+        errorLabelContainer: '.errorTxt',
+        submitHandler: function() {
+
+            var form = $('#submit_editorial_review_form');
+            var formdata = false;
+    
+            if(window.FormData)
+            {
+                formdata = new FormData(form[0]);
+            }
+    
+            $.ajax({
+                type: "POST",
+                url: base_url + 'oprs/manuscripts/editorial_review',
+                data : formdata ? formdata :form.serialize(),
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    location.reload();
+                }
+            });
+
+            $('#editorialModal').modal('toggle');
+        }
+    });
+
+    // submit to layout manager
+    $("#publication_form").validate({
+        debug: true,
+        errorClass: 'text-danger',
+        submitHandler: function() {
+            $.ajax({
+                type: "POST",
+                url: base_url + "oprs/manuscripts/for_publication/",
+                data: $('#publication_form').serializeArray(),
+                cache: false,
+                crossDomain: true,
+                success: function(data) {
+                    location.reload();
+                    // console.log(data);
+                }
+            });
+        }
+    });
+
+    // submit publishable manuscript 
+    $('#publishable_form').on('submit', function(e){
+        var form = $('#publishable_form');
+        var formdata = false;
+
+        if(window.FormData)
+        {
+            formdata = new FormData(form[0]);
+        }
+
+        $.ajax({
+            type: "POST",
+            url: base_url + 'oprs/manuscripts/upload_publishable',
+            data : formdata ? formdata :form.serialize(),
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                // window.location.reload();
+                console.log(response);
+            }
+        });
+    });
+
+    // publish to ejournal 
+    $('#pub_to_e_form').on('submit', function(e){
+        var form = $('#pub_to_e_form');
+        var formdata = false;
+
+        if(window.FormData)
+        {
+            formdata = new FormData(form[0]);
+        }
+
+        $.ajax({
+            type: "POST",
+            url: base_url + 'oprs/manuscripts/publish',
+            data : formdata ? formdata :form.serialize(),
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                // window.location.reload();
+                console.log(response);
+            }
+        });
+    });
+
+
 });
 
 // count character for limited input in remarks
@@ -2625,6 +3239,8 @@ function countChar(val) {
 // show modal with tinymcye
 // add many reviewers
 function process_man(id) {
+
+    tinyMCE.remove();
     
     revIncr = 1;
     $('#process_manuscript_form')[0].reset();
@@ -2634,14 +3250,97 @@ function process_man(id) {
     $('#rev_acc_mail #collapse_mail1').addClass('show');
     
     man_id = id;
+
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/get_manuscript_by_id/"+id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                mail_title = val.man_title;
+
+                $('#jor_volume').val(val.man_volume);
+                $('#jor_issue').val(val.man_issue);
+                $('#jor_year').val(val.man_year);
+
+                if(val.man_status > 1){
+                    localStorage.setItem('jor_vol', val.man_volume);
+                    localStorage.setItem('jor_issue', val.man_issue);
+                    localStorage.setItem('jor_year', val.man_year);
+                }
+           
+            });
+
+        }
+    });
+
     $('#form_journal').show();
     if($('#trk_rev1').val() == ''){
         load_email_content();       
     }
+
+    
+}
+
+// process manuscript by adding editor
+// show modal with tinymcye
+function edit_man(id) {
+
+    tinyMCE.remove();
+    
+    revIncr = 1;
+    $('#edit_manuscript_form')[0].reset();
+    $('#rev_acc .card').not(':first').remove();
+    $('#rev_acc #collapse1').addClass('show');
+    $('#rev_acc_mail .card').not(':first').remove();
+    $('#rev_acc_mail #collapse_mail1').addClass('show');
+    
+    man_id = id;
+
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/get_manuscript_by_id/"+id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                mail_title = val.man_title;
+
+                $('#edit_manuscript_form #jor_volume').val(val.man_volume);
+                $('#edit_manuscript_form #jor_issue').val(val.man_issue);
+                $('#edit_manuscript_form #jor_year').val(val.man_year);
+
+                if(val.man_status > 1){
+                    localStorage.setItem('jor_vol', val.man_volume);
+                    localStorage.setItem('jor_issue', val.man_issue);
+                    localStorage.setItem('jor_year', val.man_year);
+                }
+           
+            });
+
+        }
+    });
+
+    $('#form_journal').show();
+    if($('#editor_rev1').val() == ''){
+        load_editor_email_content();       
+    }
+
+    
 }
 
 // show tracking modal
 function tracking(id, role, title, status) {
+    
+
+    if(status == 1){
+        $('#trackingModal .dropdown').show();
+    }else{
+        $('#trackingModal .dropdown').hide();
+    }
+
+
     var manuscript_title = decodeURIComponent(title);
     man_id = id;
     $.ajax({
@@ -2661,16 +3360,16 @@ function tracking(id, role, title, status) {
                     var proc_id = val.trk_processor;
 
                     if (proc_id.indexOf('R') != -1 || val.trk_source == '_sk_r') {
-                        // var user_role = 'Reviewer';
-                        var user_role = 'Reviewed manuscript';
+                        var user_role = '<span class="text-muted small">Reviewer</span>';
+                        var user_action = 'Reviewed manuscript';
                         review(proc_id, trk_c, user);
                     } else {
                         if (val.trk_source == '_sk' || val.trk_source == '_op') {
+                            var user_role = '<span class="text-muted small">Author</span>';
                             if (val.trk_remarks == null) {
-                                // var user_role = 'Author <br/>Submitted initial manuscript for review';
-                                var user_role = 'Submitted initial manuscript for review';
+                                var user_action = 'Submitted initial manuscript for review';
                             } else {
-                                var user_role = 'Submitted final manuscript<br/>' +
+                                var user_action = '<Submitted final manuscript<br/>' +
                                     '<span class="alert p-1 mt-1 mb-0 pb-0"><strong>Remarks:</strong> ' +
                                     val.trk_remarks +
                                     '</span>';
@@ -2678,21 +3377,29 @@ function tracking(id, role, title, status) {
 
                         } else {
 
-                            if (val.trk_description == 'APPROVED' || val.trk_description == 'PUBLISHED') {
-
-                                var user_role = 'Submitted to reviewers';
-                                
-                                    '<br/><strong>' + val.trk_remarks + '</strong>';
+                            if(val.trk_description == 'EDITOR'){
+                                var user_role = '<span class="text-muted small">Managing Editor</span>';
+                                var user_action = 'Submitted to Editor-in-Chief';
                             }else if(val.trk_description == 'FINAL'){
-                                // var user_role = 'Publiation Committee';
-                                var user_role = 'Processed for publication';
-                                com_review(id ,trk_c);
-                            }
-                            else {
-
-                                // var user_role = 'Managing Editor';
-                                var user_role = 'Submitted to reviewers';
-                                reviewers(id, trk_c, val.trk_remarks, role, val.trk_description, val.trk_process_datetime, manuscript_title, status);
+                                var user_role = '<span class="text-muted small">Editor-in-Chief</span>';
+                                var user_action = 'Submitted to author for revision/final manuscript'; 
+                            }else if(val.trk_description == 'LAYOUT'){
+                                var user_role = '<span class="text-muted small">Editor-in-Chief</span>';
+                                var user_action = 'Submitted to Layout Manager';
+                            }else if(val.trk_description == 'PUBLISHABLE'){
+                                var user_role = '<span class="text-muted small">Managing Editor</span>';
+                                var user_action = 'Submitted to Editor-in-Chief for finalization';
+                            }else if(val.trk_description == 'PUBLISHED'){
+                                var user_role = '<span class="text-muted small">Managing Editor</span>';
+                                var user_action = 'Manuscript is published and viewable in <a href="https://researchjournal.nrcp.dost.gov.ph/" target="_blank">researchjournal.nrcp.dost.gov.ph</a>'; 
+                            }else if(val.trk_description == 'PUBLISHED TO OTHER JOURNAL PLATFORM'){
+                                var user_role = '<span class="text-muted small">Managing Editor</span>';
+                                var user_action = 'Manuscript is already published to other journal platform'; 
+                           
+                            }else {
+                                var user_role = '<span class="text-muted small">Managing Editor</span>';
+                                var user_action = 'Submitted to reviewers';
+                                reviewers(id, trk_c, val.trk_remarks, role, val.trk_description, val.trk_process_datetime, title, status);
                             }
                         }
 
@@ -2700,10 +3407,10 @@ function tracking(id, role, title, status) {
 
                     html = '<li class="list-group-item list-group-item-secondary flex-column align-items-start">' +
                         '<div class="d-flex w-100 justify-content-between">' +
-                        '<h6 class="mb-1 font-weight-bold">' + user + '</h6>' +
+                        '<h6 class="mb-1 font-weight-bold">' + user + ' (' + user_role + ')</h6>' +
                         '<small>' + moment(val.trk_process_datetime, 'YYYY-MM-DD HH:mm').format("MMMM D, h:mm a") + '</small>' +
                         '</div>' +
-                        '<small class="mb-1">' + user_role + '</small><br/>' +
+                        '<small class="mb-1">' + user_action + '</small><br/>' +
                         '<span class="usr' + trk_c + '"></span>' +
                         '</li>';
 
@@ -2717,6 +3424,8 @@ function tracking(id, role, title, status) {
 
 
             } else {
+
+                
 
                 html = '<li class="list-group-item list-group-item-secondary flex-column align-items-start">' +
                     '<div class="d-flex w-100 justify-content-between">' +
@@ -2825,12 +3534,18 @@ function hide_rev(id, user) {
 function manus_view(file, type) {
    
     if(type == 'abs'){
-        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/abstracts/' + file));
+        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/initial_abstracts_pdf/' + file));
+        $('#manusModal .modal-title').text('Abstract');
+    }else if(type == 'full'){
+        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/initial_manuscripts_pdf/' + file));
+        $('#manusModal .modal-title').text('Full Text PDF');
+    }else if(type == 'final_absl'){
+        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/final_abstracts_pdf/' + file));
         $('#manusModal .modal-title').text('Abstract');
     }else{
-        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/manuscripts/' + file));
+        $('#manus_view').replaceWith($('#manus_view').clone().attr('src', base_url + 'assets/oprs/uploads/final_manuscripts_pdf/' + file));
         $('#manusModal .modal-title').text('Full Text PDF');
-    }   
+    }     
     
 }
 
@@ -2979,7 +3694,7 @@ function view_reviewers(id, time, title, status) {
                     revs.push(val.rev_email);
                     var date = (val.rev_date_respond != null) ? moment(val.rev_date_respond, 'YYYY-MM-DD HH:mm').format("MMMM D, YYYY h:mm a") : '-';
                     var req_status = (val.rev_status == 1) ? '<span class="badge badge-pill badge-success">ACCEPTED</span>' :
-                        (val.rev_status == 0) ? '<span class="badge badge-pill badge-danger">DECLINED</span>' :
+                        (val.rev_status == 9) ? '<span class="badge badge-pill badge-danger">DECLINED</span>' :
                         (val.rev_status == 2) ? '<span class="badge badge-pill badge-secondary">PENDING REQUEST</span>' :
                         '<span class="badge badge-pill badge-danger">LAPSED REQUEST</span>';
 
@@ -3050,6 +3765,128 @@ function view_reviewers(id, time, title, status) {
     });
 }
 
+// show all editors per manuscript
+function view_editors(id, title) {
+
+    var manuscript_title = decodeURIComponent(title);
+
+    $('#editorialReviewModal p').text('TITLE : ' + manuscript_title);
+
+    man_id = id;
+
+
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/editors/" + id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            // console.log(data);
+            if ($.fn.DataTable.isDataTable("#table-editors")) {
+                $('#table-editors').DataTable().clear().destroy();
+            }
+
+            if (data.length > 0) {
+              
+                revs = [];
+                var c = 0;
+
+                $.each(data, function(key, val) {
+
+                    var date = moment(val.date_created, 'YYYY-MM-DD HH:mm').format("MMMM D, YYYY h:mm a");
+                    
+
+                    $('#table-editors').dataTable().fnAddData([
+                        c++,
+                        val.edit_name,
+                        val.edit_specialization,
+                        val.edit_email,
+                        val.edit_contact,
+                        date
+                    ]);
+                });
+
+
+
+                var t = $('#table-editors').DataTable();
+                t.on('order.dt search.dt', function() {
+                    t.column(0, {
+                        search: 'applied',
+                        order: 'applied'
+                    }).nodes().each(function(cell, i) {
+                        cell.innerHTML = i + 1;
+                    });
+                }).draw();
+            }
+
+
+        }
+    });
+}
+
+// show all reviewers per manuscript
+function view_reviews(id, title) {
+
+    var manuscript_title = decodeURIComponent(title);
+
+    $('#reviewsModal p').text('TITLE : ' + manuscript_title);
+
+    man_id = id;
+
+    $('#reviews_table tbody').empty();
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/reviews/" + id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+
+            if ($.fn.DataTable.isDataTable("#reviews_table")) {
+                $('#reviews_table ').DataTable().clear().destroy();
+            }
+
+            var i = 1;
+            $.each(data, function(key, val) {
+
+                var name = val.rev_name;
+                var score = val.scr_total + '/100';
+                var status = val.scr_status;
+                var rem = (val.scr_remarks == '' || val.scr_remarks == null) ? '-' : val.scr_remarks;
+                var file = (val.scr_file == null || val.scr_file == '') ? 'N/A' : '<a class="text-primary" href="' + base_url + "assets/oprs/uploads/reviewersdoc/" + val.scr_file + '" target="_blank" download>Downlod</a>';
+
+                var reco = ((status == 4) ? '<span class="badge badge-pill badge-success">Recommended as submitted</span>' :
+                    ((status == 5) ? '<span class="badge badge-pill badge-warning">Recommended with minor revisions</span>' :
+                    ((status == 6) ? '<span class="badge badge-pill badge-warning">Recommended with major revisions</span>' :
+                        '<span class="badge badge-pill badge-danger">Not recommended</span>')));
+                
+                $('#reviews_table tbody').append('<tr><td>' + i +'</td> \
+                                                <td>' + name + '</td> \
+                                                <td>' + score + '</td> \
+                                                <td>' + reco + ' \
+                                                <td>' + file +'</td> \
+                                                <td>' + rem +'</td></tr>');
+                
+                i++;
+            });
+
+            
+            var t = $('#reviews_table').DataTable();
+            t.on('order.dt search.dt', function() {
+                t.column(0, {
+                    search: 'applied',
+                    order: 'applied'
+                }).nodes().each(function(cell, i) {
+                    cell.innerHTML = i + 1;
+                });
+            }).draw();
+
+            
+
+
+        }
+    });
+}
+
 // get review submitted by reviewer
 function get_review_status(rev_id) {
 
@@ -3067,7 +3904,7 @@ function get_review_status(rev_id) {
 
 // display full text manuscript and evaluation form (reviewers only)
 function start_review(file, id, title, auth, hide_auth) {
-    $('#manus_review').attr('src', base_url + 'assets/oprs/uploads/manuscripts/' + file);
+    $('#manus_review').attr('src', base_url + 'assets/oprs/uploads/initial_manuscripts_pdf/' + file);
     $('#rev_title').text(decodeURIComponent(title));
     var author = (hide_auth == 1) ? 'Undisclosed' : auth;
     $('#rev_author').text(author);
@@ -3145,111 +3982,198 @@ function generate_email(rid, mid) {
         dataType: "json",
         crossDomain: true,
         success: function(data) {
+
+            console.log(data);
             $.each(data, function(key, val) {
                 t = val.man_title;
                 a = val.man_author;
                 f = val.man_affiliation;
 
                 var header = '';
-    var dear = '';
-    var exp = '';
-    var mail = '';
+                var dear = '';
+                var exp = '';
+                var address = '';
+                var new_mail = '';
+                
+                var mail = moment().format('MMMM D, YYYY') + '<br/><br/>' + mail_content;
+console.log(mail);
+                $('#rev_header' + mid).text($('#trk_rev' + mid).val());
+                $('#rev_header_mail' + mid).text($('#trk_rev' + mid).val());
 
-    $('#rev_header' + mid).text($('#trk_rev' + mid).val());
-    $('#rev_header_mail' + mid).text($('#trk_rev' + mid).val());
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "oprs/manuscripts/reviewer_info/" + rid,
+                    dataType: "json",
+                    crossDomain: true,
+                    success: function(data) {
 
+                        console.log(data);
+                        $.each(data, function(key, val) {
+
+                            var emp_pos = (val.emp_pos != null && (val.emp_pos).length > 0) ? val.emp_pos : '[POSITION]';
+                            var emp_dept = (val.emp_div_dept != null && (val.emp_div_dept).length > 0) ? val.emp_div_dept : '[DEPARTMENT]';
+                            var emp_ins = (val.emp_ins != null && (val.emp_ins).length > 0) ? val.emp_ins : '[AFFILIATION]';
+                            var emp_address = (val.emp_address != null && (val.emp_address).length > 0) ? val.emp_address : '[ADDRESS]';
+                            
+                            header = '<span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name + ' ' + val.pp_extension + '</strong></span></span>';
+
+                            // address = emp_pos_id + 
+                            // emp_div_dept + 
+                            // emp_ins_id + 
+                            // emp_address + '<br/><br/>';
+
+                            dear = 'Dear <span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_last_name + '</strong></span> : <br/><br/>';
+                            exp = val.mpr_gen_specialization;
+
+                            new_mail = mail.replace('[FULL NAME]', header);
+                            new_mail = new_mail.replace('[TITLE]', val.title_name);
+                            new_mail = new_mail.replace('[LAST NAME]', val.pp_last_name);
+                            new_mail = new_mail.replace('[POSITION]', emp_pos);
+                            new_mail = new_mail.replace('[DEPARTMENT]', emp_dept);
+                            new_mail = new_mail.replace('[AFFILIATION]', emp_ins);
+                            new_mail = new_mail.replace('[ADDRESS]', emp_address);
+                            new_mail = new_mail.replace('[SPECIALIZATION]', exp);
+                            new_mail = new_mail.replace('[MANUSCRIPT]', t);
+                        });
+
+                        var jor_iss = localStorage.getItem('jor_issue');
+                        var jor_vol = localStorage.getItem('jor_vol');
+                        var art_iss = localStorage.getItem('art_iss');
+                        var jor_year = localStorage.getItem('jor_year');
+
+                        if (jor_vol == 0) {
+                            new_mail = new_mail.replace('[ISSUE], [VOLUME] ([YEAR])', art_iss + '(' + jor_year + ')');
+                        } else if (jor_vol == null) {
+                            new_mail = new_mail;
+                        } else {
+                            var prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
+                            
+                            new_mail = new_mail.replace('[VOLUME]', 'Volume ' + jor_vol + ', ');
+                            new_mail = new_mail.replace('[ISSUE]', prefix);
+                            new_mail = new_mail.replace('[YEAR]', jor_year);
+                        }
+
+                        
+                        console.log(new_mail);
+                        
+                        tinymce.remove('tiny_mail' + mid);
+                        tinymce.init({
+                            selector: '#tiny_mail' + mid,
+                            forced_root_block : false,
+                            height : "750"
+                        });
+
+
+                        $(tinymce.get('tiny_mail' + mid).getBody()).html(new_mail);
+
+                        }
+                });
+            });
+        }
+    });
+    $('#rev_acc_mail .collapse').removeClass('show');
+    $('#collapse_mail' + mid).addClass('show');
+}
+
+// generate review request email content in tinymce
+function generate_editor_email(rid, mid) {
     $.ajax({
-        type: "POST",
-        url: base_url + "oprs/manuscripts/reviewer_info/" + rid,
+        type: "GET",
+        url: base_url + "oprs/manuscripts/get_manuscript_by_id/"+man_id,
         dataType: "json",
         crossDomain: true,
         success: function(data) {
-            // console.log(data);
+
+            console.log(data);
             $.each(data, function(key, val) {
+                t = val.man_title;
+                a = val.man_author;
+                f = val.man_affiliation;
 
-                var emp_pos_id = (val.emp_pos_id != null) ? val.emp_pos_id : '';
-                var emp_div_dept = (val.emp_div_dept != null) ? val.emp_div_dept : '';
-                var emp_ins_id = (val.emp_ins_id != null) ? val.emp_ins_id : '';
-                var emp_address = (val.emp_address != null) ? val.emp_address : '';
+                var header = '';
+                var dear = '';
+                var exp = '';
+                var address = '';
+                var new_mail = '';
+                
+                var mail = moment().format('MMMM D, YYYY') + '<br/><br/>' + editor_mail_content;
+console.log(mail);
+                $('#rev_header' + mid).text($('#trk_rev' + mid).val());
+                $('#rev_header_mail' + mid).text($('#trk_rev' + mid).val());
 
-                header = '<span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name + ' ' + val.pp_extension + '</strong></span><br/>' +
-                    emp_pos_id + '<br/>' +
-                    emp_div_dept + '<br/>' +
-                    emp_ins_id + '<br/>' +
-                    emp_address + '<br/><br/>';
+                $.ajax({
+                    type: "POST",
+                    url: base_url + "oprs/manuscripts/reviewer_info/" + rid,
+                    dataType: "json",
+                    crossDomain: true,
+                    success: function(data) {
 
-                dear = 'Dear <span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_last_name + '</strong></span> : <br/><br/>';
+                        console.log(data);
+                        $.each(data, function(key, val) {
 
-                exp = val.mpr_gen_specialization;
+                            var emp_pos = (val.emp_pos != null && (val.emp_pos).length > 0) ? val.emp_pos : '[POSITION]';
+                            var emp_dept = (val.emp_div_dept != null && (val.emp_div_dept).length > 0) ? val.emp_div_dept : '[DEPARTMENT]';
+                            var emp_ins = (val.emp_ins != null && (val.emp_ins).length > 0) ? val.emp_ins : '[AFFILIATION]';
+                            var emp_address = (val.emp_address != null && (val.emp_address).length > 0) ? val.emp_address : '[ADDRESS]';
+                            
+                            header = '<span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_first_name + ' ' + val.pp_middle_name + ' ' + val.pp_last_name + ' ' + val.pp_extension + '</strong></span></span>';
 
-                // authored by ' + a + ' from the ' + f + '
+                            // address = emp_pos_id + 
+                            // emp_div_dept + 
+                            // emp_ins_id + 
+                            // emp_address + '<br/><br/>';
 
-                mail = moment().format('MMMM D, YYYY') + '<br/><br/>' +
-                    header +
-                    dear +
+                            dear = 'Dear <span style="text-transform:uppercase"><strong>' + val.title_name + ' ' + val.pp_last_name + '</strong></span> : <br/><br/>';
+                            exp = val.mpr_gen_specialization;
 
-                    'The NRCP Research Journal, issued twice a year, features completed research projects of members of the National Research Council of the ' +
-                    'Philippines (NRCP), particularly those funded by the Council. This is one of NRCP\'s contribution to the body of knowledge in the realm of basic ' +
-                    'research which, we believe, paves the way for further research. <br/><br>' +
-            
-                    'For (volume), (issue), we have selected manuscripts for possible publication and one of these is entitled ' +
-                    '<strong>"' + t + '"</strong>. <br/><br/>' +
+                            new_mail = mail.replace('[FULL NAME]', header);
+                            new_mail = new_mail.replace('[TITLE]', val.title_name);
+                            new_mail = new_mail.replace('[LAST NAME]', val.pp_last_name);
+                            new_mail = new_mail.replace('[POSITION]', emp_pos);
+                            new_mail = new_mail.replace('[DEPARTMENT]', emp_dept);
+                            new_mail = new_mail.replace('[AFFILIATION]', emp_ins);
+                            new_mail = new_mail.replace('[ADDRESS]', emp_address);
+                            new_mail = new_mail.replace('[SPECIALIZATION]', exp);
+                            new_mail = new_mail.replace('[MANUSCRIPT]', t);
+                        });
 
-                    'In recognition of your expertise particularly in ' + exp + ', may we request you to be a Reviewer of' +
-                    'the above-mentioned manuscript. We are certain that as a Reviewer, you will render the paper a sound technical perspective worthy of publication in ' +
-                    'the NRCP Research Journal. Please refer to the attached Abstract to provide you with an overview of the paper. <br/></br/>' +
-            
-                    '<em>[TIME - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
+                        var jor_iss = localStorage.getItem('jor_issue');
+                        var jor_vol = localStorage.getItem('jor_vol');
+                        var art_iss = localStorage.getItem('art_iss');
+                        var jor_year = localStorage.getItem('jor_year');
 
-                    'With your acceptance of this invitation, we will send you the full manuscript, the manuscript evaluation form, ' +
-                    'and the Non-Disclosure Agreement (NDA) automatically once you login as Reviewer.  <br/></br/>'+
-            
-                    '<em>[DUE - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
+                        if (jor_vol == 0) {
+                            new_mail = new_mail.replace('[ISSUE], [VOLUME] ([YEAR])', art_iss + '(' + jor_year + ')');
+                        } else if (jor_vol == null) {
+                            new_mail = new_mail;
+                        } else {
+                            var prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
+                            
+                            new_mail = new_mail.replace('[VOLUME]', 'Volume ' + jor_vol + ', ');
+                            new_mail = new_mail.replace('[ISSUE]', prefix);
+                            new_mail = new_mail.replace('[YEAR]', jor_year);
+                        }
 
-                    '<em>[SYSTEM GENERATED LINE - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
+                        
+                        console.log(new_mail);
+                        
+                        tinymce.remove('editor_tiny_mail' + mid);
+                        tinymce.init({
+                            selector: '#editor_tiny_mail' + mid,
+                            forced_root_block : false,
+                            height : "750"
+                        });
 
-                    'A modest token of appreciation will be given upon submission of your review. <br/></br/>' +
-                    
-         
-                    'For any concern, please do not hesitate to contact the following: <br/>' +
-                    '1. For publication related matters - Lanie P. Manalo, Tel. No.: 837-6141. email: laniemanalo94@yahoo.com <br/> ' +
-                    '2. For technical concerns - Gerard Paul D. Balde, email: nrcp1933@gmail.com <br/><br/>' +
-            
-                    'Thank you for your favorable action to this request. </br><br/>' +
-        
-                    'Managing Editor<br/>' +
-                    'NRCP Research Journal <br/><br/>' +
-			        '** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
+
+                        $(tinymce.get('editor_tiny_mail' + mid).getBody()).html(new_mail);
+
+                        }
+                });
             });
-
-            var jor_iss = localStorage.getItem('jor_issue');
-            var jor_vol = localStorage.getItem('jor_vol');
-            var art_iss = localStorage.getItem('art_iss');
-
-            if (jor_vol == 0) {
-                var new_mail = mail.replace('(volume), (issue)', art_iss);
-            } else if (jor_vol == null) {
-                new_mail = mail;
-            } else {
-                var prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
-                var new_mail = mail.replace('(volume),', 'Volume ' + jor_vol + ', ');
-                new_mail = new_mail.replace('(issue),', prefix);
-            }
-
-            $(tinymce.get('tiny_mail' + mid).getBody()).html(new_mail);
-
         }
     });
-            });
-        }
-        });
-
-    
     $('#rev_acc_mail .collapse').removeClass('show');
-    // $('.card-header[data-target="#collapse'+mid).get(0).click();
     $('#collapse_mail' + mid).addClass('show');
-
-
 }
 
 // stroe manuscript id in global variable
@@ -3310,84 +4234,66 @@ function dash_reviewer(id) {
 
 // show replaced variables in email content in tinymce
 function load_email_content(num = 1) {
-    $.ajax({
-        type: "GET",
-        url: base_url + "oprs/manuscripts/get_manuscript_by_id/"+man_id,
-        dataType: "json",
-        crossDomain: true,
-        success: function(data) {
-            $.each(data, function(key, val) {
-                
-                var header = '';
-                var dear = '';
-                var exp = '';
-                var mail = '';
-            
-            
-                dear = 'Dear <span style="text-transform:uppercase"><strong>[TITLE] [LAST NAME]</strong></span> : <br/><br/>';
-                header = '<strong>[FULL NAME]</strong><br/>' +
-                    '[ADDRESS]<br/><br/>';
-            
-                mail = moment().format('MMMM D, YYYY') + '<br/><br/>' +
-                    header +
-                    dear +
-            
-                    'The NRCP Research Journal, issued twice a year, features completed research projects of members of the National Research Council of the ' +
-                    'Philippines (NRCP), particularly those funded by the Council. This is one of NRCP\'s contribution to the body of knowledge in the realm of basic ' +
-                    'research which, we believe, paves the way for further research. <br/><br>' +
-            
-                    'For (volume), (issue), we have selected manuscripts for possible publication and one of these is entitled ' +
-                    '<strong>"' + val.man_title + '"</strong>. <br/><br/>' +
 
-                    'In recognition of your expertise particularly in [SPECIALIZATION], may we request you to be a Reviewer of' +
-                    'the above-mentioned manuscript. We are certain that as a Reviewer, you will render the paper a sound technical perspective worthy of publication in ' +
-                    'the NRCP Research Journal. Please refer to the attached Abstract to provide you with an overview of the paper. <br/></br/>' +
-            
-                    '<em>[TIME - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
 
-                    'With your acceptance of this invitation, we will send you the full manuscript, the manuscript evaluation form, ' +
-                    'and the Non-Disclosure Agreement (NDA) automatically once you login as Reviewer.  <br/></br/>'+
-            
-                    '<em>[DUE - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
+    var new_mail = '';
+    var mail = moment().format('MMMM D, YYYY') + '<br/><br/>' + mail_content;
+    var jor_iss = localStorage.getItem('jor_issue');
+    var jor_vol = localStorage.getItem('jor_vol');
+    var jor_year = localStorage.getItem('jor_year');
+    // var art_iss = localStorage.getItem('art_iss');
 
-                    '<em>[SYSTEM GENERATED LINE - PLEASE DO NOT REMOVE THIS LINE]</em> <br/></br/>' +
+    if (jor_vol == null) {
+        new_mail = mail;
+    } else {
+            prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
+            new_mail = mail.replace('[VOLUME]', 'Volume ' + jor_vol + ' ');
+        new_mail = new_mail.replace('[ISSUE]', prefix);
+        new_mail = new_mail.replace('[YEAR],', jor_year);
+    }
 
-                    'A modest token of appreciation will be given upon submission of your review. <br/></br/>' +
-                    
-                    'For any concern, please do not hesitate to contact the following: <br/>' +
-                    '1. For publication related matters - Lanie P. Manalo, Tel. No.: 837-6141. email: laniemanalo94@yahoo.com <br/> ' +
-                    '2. For technical concerns - Gerard Paul D. Balde, email: nrcp1933@gmail.com <br/><br/>' +
-            
-                    'Thank you for your favorable action to this request. </br><br/>' +
-        
-                    'Managing Editor<br/>' +
-                    'NRCP Research Journal <br/><br/>' +
-			        '** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-            
-            
-                var jor_iss = localStorage.getItem('jor_issue');
-                var jor_vol = localStorage.getItem('jor_vol');
-                var art_iss = localStorage.getItem('art_iss');
-            
-                if (jor_vol == 0) {
-                    var new_mail = mail.replace('(volume), (issue)', art_iss);
-            
-                } else if (jor_vol == null) {
-                    new_mail = mail;
-                } else {
-                    var prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
-                    var new_mail = mail.replace('(volume),', 'Volume ' + jor_vol + ', ');
-                    new_mail = new_mail.replace('(issue),', prefix);
-                }
-            
-                $(tinymce.get('tiny_mail' + num).getBody()).html(new_mail);
+    new_mail = new_mail.replace('[MANUSCRIPT]', mail_title);
 
-            });
-        }
-        });
+    tinymce.init({
+        selector: '#tiny_mail' + num,
+        forced_root_block : false,
+        height : "750"
+    });
 
- 
+    $(tinymce.get('tiny_mail' + num).getBody()).html(new_mail);
 
+   
+}
+
+// show replaced variables in email content in tinymce (editor)
+function load_editor_email_content(num = 1) {
+
+    var new_mail = '';
+    var mail = moment().format('MMMM D, YYYY') + '<br/><br/>' + editor_mail_content;
+    var jor_iss = localStorage.getItem('jor_issue');
+    var jor_vol = localStorage.getItem('jor_vol');
+    var jor_year = localStorage.getItem('jor_year');
+    // var art_iss = localStorage.getItem('art_iss');
+
+    if (jor_vol == null) {
+        new_mail = mail;
+    } else {
+            prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
+            new_mail = mail.replace('[VOLUME]', 'Volume ' + jor_vol + ' ');
+        new_mail = new_mail.replace('[ISSUE]', prefix);
+        new_mail = new_mail.replace('[YEAR],', jor_year);
+    }
+
+    new_mail = new_mail.replace('[MANUSCRIPT]', mail_title);
+
+    tinymce.init({
+        selector: '#editor_tiny_mail' + num,
+        forced_root_block : false,
+        height : "750"
+    });
+
+    $(tinymce.get('editor_tiny_mail' + num).getBody()).html(new_mail);
+   
 }
 
 // unused
@@ -3521,88 +4427,6 @@ function view_score(id, manus_id, reviewer) {
     $('#score_reviewer').html(reviewer);
 }
 
-// function generate_non_mem_email(rid, mid) {
-//     var header = '';
-//     var dear = '';
-//     var exp = '';
-//     var mail = '';
-
-//     $('#rev_header' + mid).text($('#trk_rev' + mid).val());
-//     $('#rev_header_mail' + mid).text($('#trk_rev' + mid).val());
-
-//     $.ajax({
-//         type: "POST",
-//         url: base_url + "oprs/manuscripts/non_member_info/" + rid,
-//         dataType: "json",
-//         crossDomain: true,
-//         success: function(data) {
-
-//             $.each(data, function(key, val) {
-//                 header = '<span style="text-transform:uppercase"><strong>' + val.non_first_name + ' ' + val.non_middle_name + ' ' + val.non_last_name + '</strong></span><br/>' +
-//                     val.non_affiliation + '<br/>' +
-//                     val.non_email + '<br/>' +
-//                     val.non_contact + '<br/><br/>';
-
-//                 dear = 'Dear <span style="text-transform:uppercase"><strong>' + val.non_title + ' ' + val.non_last_name + '</strong></span> : <br/><br/>';
-
-//                 exp = val.non_specialization;
-
-
-//                 mail = moment().format('MMMM D, YYYY') + '<br/><br/>' +
-//                     header +
-//                     dear +
-
-//                     'The DOST-NRCP publishes its NRCP Research Journal, which features the completed projects ' +
-//                     'of NRCP members particularly those funded by NRCP, on a quarterly basis. This is one of ' +
-//                     'NRCP\'s contribution to the body of knowledge in the realm of basic research which is we ' +
-//                     'believe gives impact to further research or even new areas for research. <br/><br>' +
-
-//                     'For (volume), (issue), we have selected the papers that will be featured and one of these is ' +
-//                     'entitled <em>"' + manuscripts[man_id - 1]['title'] + '"</em> authored by ' + manuscripts[man_id - 1]['author'] + ' from the ' + manuscripts[man_id - 1]['affiliation'] + '. <br/><br/>' +
-
-//                     'In recognition of your expertise particularly in ' + exp + ', ' +
-//                     'may we request you to be a Reviewer of the paper submitted. We are certain that as Reviewer, you will render the paper a ' +
-//                     'sound technical perspective worthy of publication in the NRCP Journal. <br/></br/>' +
-
-//                     '<em>[SYSTEM GENERATED LINE - PLEASE DO NOT REMOVE]</em> <br/></br/>' +
-
-//                     'For any concern, please do not hesitate to contact the following: <br/>' +
-//                     '1. For publication related matters - Lanie P. Manalo, Tel. No.: 837-6141. email: laniemanalo94@yahoo.com <br/> ' +
-//                     '2. For technical concerns - Gerard Paul D. Balde, email: nrcp1933@gmail.com <br/><br/>' +
-
-//                     'Thank you in advance for your favorable action to this request. </br><br/>' +
-
-//                     'Very truly yours, <br/><br/>' +
-
-
-//                     '<strong>MARIETA BAÑEZ-SUMAGAYSAY, Ph. D.</strong> </br>' +
-//                     'Executive Director';
-
-
-//             });
-
-//             var jor_iss = localStorage.getItem('jor_issue');
-//             var jor_vol = localStorage.getItem('jor_vol');
-//             var art_iss = localStorage.getItem('art_iss');
-
-//             if (jor_vol == 0) {
-//                 var new_mail = mail.replace('(volume), (issue)', art_iss);
-//             } else if (jor_vol == null) {
-//                 new_mail = mail;
-//             } else {
-//                 var prefix = jor_iss >= 5 ? 'Special Issue No. ' + (jor_iss - 4) : 'Issue ' + jor_iss;
-//                 var new_mail = mail.replace('(volume),', 'Volume ' + jor_vol + ', ');
-//                 new_mail = new_mail.replace('(issue),', prefix);
-//             }
-
-//             $(tinymce.get('tiny_mail' + mid).getBody()).html(new_mail);
-//         }
-//     });
-//     $('#rev_acc_mail .collapse').removeClass('show');
-//     // $('.card-header[data-target="#collapse'+mid).get(0).click();
-//     $('#collapse_mail' + mid).addClass('show');
-
-// }
 
 // edit user
 function edit_user(id) {
@@ -3632,7 +4456,8 @@ function edit_user(id) {
                         '<option value="6">Manager</option>' +
                         '<option value="10">Editor</option>' +
                         '<option value="11">Guest Editor</option>' +
-                        '<option value="12">Editor-in-Chief</option>');
+                        '<option value="12">Editor-in-Chief</option> '+
+                        '<option value="13">Layout</option>');
                 }else{
                     $('#editUserModal #usr_role').append('<option value="" selected>Select User Role</option>' +
                     '<option value="3">Managing Editor</option>');
@@ -3684,9 +4509,11 @@ function activate_deactivate_user() {
         dataType: "json",
         crossDomain: true,
         success: function(data) {
-            location.reload();
         }
     });
+
+    
+    location.reload();
 }
 
 // publish manuscripts (for finalization)
@@ -4026,7 +4853,7 @@ function remove_manus(id){
 
 // refresh
 function refresh_manus(){
-    location.reload(0);
+    location.reload();
 }
 
 // show csf in table
@@ -4313,6 +5140,219 @@ function add_remarks(id){
     man_id = id;
 }
 
+// manage email notification content
+function edit_email_content(id){
+
+    var html_body;
+    var roles = '';
+    var check_roles = '';
 
 
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/emails/get_email_content/"+id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                $('#emailContentModal .modal-title').text(val.enc_subject);
+                $('#email_content_form #enc_subject').val(val.enc_subject);
+                $('#email_content_form #enc_description').val(val.enc_description);
+                $('#email_content_form #enc_cc').val(val.enc_cc);
+                $('#email_content_form #enc_bcc').val(val.enc_bcc);
+                $('#email_content_form #enc_process_id').val(val.enc_process_id);
+                html_body = val.enc_content;
+                var user_groups = val.enc_user_group;
 
+                check_roles = user_groups.split(',')
+            });
+
+            $.each(check_roles,function(key, val){
+                if(id == 1){
+                    $('#enc_user_group'+id).attr('onclick','return false;');
+                }else{
+                    $('#enc_user_group'+id).removeAttr('onclick','return false;');
+                }
+                $('#enc_user_group'+val).prop('checked', true);
+            });
+
+            $(tinymce.get('enc_content').getBody()).html(html_body);
+        }
+    });
+    $('#emailContentModal').modal('toggle');
+
+    
+}
+
+// manage email notification content
+function edit_email_content(id){
+
+    var html_body;
+    var roles = '';
+    var check_roles = '';
+
+
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/emails/get_email_content/"+id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $.each(data, function(key, val) {
+                $('#emailContentModal .modal-title').text(val.enc_subject);
+                $('#email_content_form #enc_subject').val(val.enc_subject);
+                $('#email_content_form #enc_description').val(val.enc_description);
+                $('#email_content_form #enc_cc').val(val.enc_cc);
+                $('#email_content_form #enc_bcc').val(val.enc_bcc);
+                $('#email_content_form #enc_process_id').val(val.enc_process_id);
+                html_body = val.enc_content;
+                var user_groups = val.enc_user_group;
+
+                check_roles = user_groups.split(',')
+            });
+
+            $.each(check_roles,function(key, val){
+                if(id == 1){
+                    $('#enc_user_group'+id).attr('onclick','return false;');
+                }else{
+                    $('#enc_user_group'+id).removeAttr('onclick','return false;');
+                }
+                $('#enc_user_group'+val).prop('checked', true);
+            });
+
+            $(tinymce.get('enc_content').getBody()).html(html_body);
+        }
+    });
+    $('#emailContentModal').modal('toggle');
+
+    
+}
+
+function submit_editorial_review(id, title){
+    // console.log(id + ' ' + title);
+    $('#edit_man_id').val(id);
+}
+
+
+function submit_publishable(id, title){
+    // console.log(id + ' ' + title);
+    $('#edit_man_id').val(id);
+}
+
+function for_publication(id){
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/manuscript/" + id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            console.log(data);
+            $.each(data, function(key, val) {
+                $.each(val, function(k, v){
+                    if(k == 'man_issue'){
+
+                        var iss = (v >= 5) ? 'Special Issue No. ' + (v - 4) : v;
+                        $('#publication_table #' + k).text(iss);
+                    }else{
+                        $('#publication_table #' + k).text(v);
+                    }
+                    $('#publication_form #man_id').val(id);
+
+                });
+            });
+        }
+    });
+}
+
+function submit_publishable(id){
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/manuscript/" + id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            console.log(data);
+            $.each(data, function(key, val) {
+                $.each(val, function(k, v){
+                    if(k == 'man_issue'){
+
+                        var iss = (v >= 5) ? 'Special Issue No. ' + (v - 4) : v;
+                        $('#publishable_table #' + k).text(iss);
+                    }else{
+                        $('#publishable_table #' + k).text(v);
+                    }
+                    $('#publishable_form #man_id').val(id);
+
+                });
+            });
+        }
+    });
+}
+
+function publish_to_ejournal(id){
+    $.ajax({
+        type: "GET",
+        url: base_url + "oprs/manuscripts/manuscript/" + id,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            console.log(data);
+            $.each(data, function(key, val) {
+                $.each(val, function(k, v){
+                    if(k == 'man_issue'){
+
+                        var iss = (v >= 5) ? 'Special Issue No. ' + (v - 4) : v;
+                        $('#pub_to_e_table #' + k).text(iss);
+                    }else{
+                        $('#pub_to_e_table #' + k).text(v);
+                    }
+                    $('#pub_to_e_form #man_id').val(id);
+                    $('#pub_to_e_form #man_id').val(id);
+
+                });
+            });
+        }
+    });
+}
+
+function change_status(status){
+    $.ajax({
+        type: "POST",
+        url: base_url + "oprs/manuscripts/change_status/" + man_id + "/" + status,
+        dataType: "json",
+        crossDomain: true,
+        success: function(data) {
+            $('#trackingModal').modal('toggle');
+            location.reload();
+        }
+    });
+}
+
+function send_cert(rev, man){
+    $.ajax({
+        type: "POST",
+        url: base_url + "oprs/manuscripts/send_certification/" + rev + "/" + man,
+        crossDomain: true,
+        success: function(data) {
+            
+            
+            $.notify({
+                icon: 'fa fa-check-circle',
+                message: 'eCertification sent.'
+            }, {
+                type: 'success',
+                timer: 3000,
+            });
+
+        }
+    });
+}
+
+function initializeMinMax() {
+  minDate = new DateTime($('#min'), {
+    format: 'MMMM D, YYYY'
+  });
+  maxDate = new DateTime($('#max'), {
+    format: 'MMMM D, YYYY'
+  });
+}

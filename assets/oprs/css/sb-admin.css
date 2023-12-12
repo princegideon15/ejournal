@@ -10722,3 +10722,17 @@ body.sidebar-toggled footer.sticky-footer {
     width: calc(100% - 90px);
   }
 }
+
+/* CUSTOM */
+#man_tab .nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: #fff;
+  background-color: #343a40;
+  border-color: #dee2e6 #dee2e6 #fff;
+}
+
+#man_tab .nav-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: #343a40;
+}

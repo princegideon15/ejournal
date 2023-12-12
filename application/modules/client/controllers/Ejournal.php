@@ -27,6 +27,7 @@ class Ejournal extends EJ_Controller {
 		$this->load->model('Library_model');
 		$this->load->model('Search_model');
 		$this->load->model('CSF_model');
+		$this->load->model('Admin/Email_model');
 		$this->load->library("My_phpmailer");
 		$objMail = $this->my_phpmailer->load();
 		$this->load->helper('visitors_helper');
@@ -40,18 +41,59 @@ class Ejournal extends EJ_Controller {
 	 */
 	public function index() {
 
-	
 		$data['main_title'] = "eJournal";
 		$data['country'] = $this->Library_model->get_library('tblcountries');
 		$data['main_content'] = "client/journal";
 		$data['journals'] = $this->Client_journal_model->get_journals();
-		$data['editorials'] = $this->Client_journal_model->get_editorials();
 		$data['popular'] = $this->Client_journal_model->top_five();
 		$data['client_count'] = $this->Client_journal_model->all_client();
 		$data['hits_count'] = $this->Client_journal_model->all_hits();
+		$data['latest'] = $this->Client_journal_model->latest_journal();
 		$this->_LoadPage('common/body', $data);
 
-		ip_info(); // store visitor information
+		// store visitor information
+		ip_info(); 
+	}
+
+	/**
+	 * Display langing page
+	 *
+	 * @return void
+	 */
+	public function about() {
+
+	
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/about";
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$this->_LoadPage('common/body', $data);
+	}
+
+	/**
+	 * Display langing page
+	 *
+	 * @return void
+	 */
+	public function guidelines() {
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/guidelines";
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$this->_LoadPage('common/body', $data);
+	}
+
+	/**
+	 * Display langing page
+	 *
+	 * @return void
+	 */
+	public function editorial() {
+
+	
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/editorial";
+		$data['editorials_vol_year'] = $this->Client_journal_model->get_unique_editorials();
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$this->_LoadPage('common/body', $data);
 	}
 
 	/**
@@ -60,9 +102,44 @@ class Ejournal extends EJ_Controller {
 	 * @param [int] $id
 	 * @return void
 	 */
-	public function get_articles($id) {
-		$output = $this->Client_journal_model->get_articles($id);
-		echo json_encode($output);
+	public function get_articles($vol,$id) {
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/articles";
+		$data['articles'] = $this->Client_journal_model->get_articles($id);
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$data['selected_journal'] = $vol;
+		$this->_LoadPage('common/body', $data);
+	}
+	
+	/**
+	 * Retrieve articles by journal id
+	 *
+	 * @param [int] $id
+	 * @return void
+	 */
+	public function get_issues($id) {
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/issues";
+		$data['issues'] = $this->Client_journal_model->get_issues($id);
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$data['selected_journal'] = $id;
+		$this->_LoadPage('common/body', $data);
+	}
+	
+
+	/**
+	 * Retrieve articles by journal id
+	 *
+	 * @param [int] $id
+	 * @return void
+	 */
+	public function get_index($id = null) {
+		$data['main_title'] = "eJournal";
+		$data['main_content'] = "client/indexes";
+		$data['articles'] = $this->Client_journal_model->get_index($id);
+		$data['journals'] = $this->Client_journal_model->get_journals();
+		$data['article_index'] = $id;
+		$this->_LoadPage('common/body', $data);
 	}
 
 	/**
@@ -116,21 +193,30 @@ class Ejournal extends EJ_Controller {
 			}
 		}
 
+		$client_member = $this->input->post('clt_member');
 		$download_id = $post['clt_journal_downloaded_id'];
 		$recipient = $post['clt_email'];
 
 		$post['clt_download_date_time'] = date('Y-m-d H:i:s');
 		$post['clt_ip_address'] = $ip_address;
-
+		
 		$client_id = $this->Client_journal_model->save_client(array_filter($post));
 
-	    $this->download_pdf_continue($download_id, $recipient, $client_id);
-		
+		$ref = random_string('alnum', 8) . date('ymdhis');
+		$fdbk_sess = array(
+			'client_id' => $client_id,
+			'fdbk_ref' => $ref,
+		);
+		$this->session->set_userdata($fdbk_sess);
+
+		// echo $client_id;
+
+	    $this->download_pdf_continue($client_id, $download_id, $recipient);
+
 		// send email to author
 		$this->notify_author($client_id, $download_id, 1); // 1 - downloaded article
 
-		
-		echo $client_id;
+	
 	}
 
 	/**
@@ -147,6 +233,29 @@ class Ejournal extends EJ_Controller {
 	
 		if($author_email == '') { $author_email = 'nrcp.ejournal@gmail.com'; }
 
+		$link = "<a href='https://researchjournal.nrcp.dost.gov.ph/' target='_blank'>https://researchjournal.nrcp.dost.gov.ph/</a>";
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+
+		// setup email config
+		$mail = new PHPMailer;
+		$mail->isSMTP();
+		$mail->Host = "smtp.gmail.com";
+		// Specify main and backup server
+		$mail->SMTPAuth = true;
+		$mail->Port = 465;
+		// Enable SMTP authentication
+		$mail->Username = $sender_email;
+		// SMTP username
+		$mail->Password = $password;
+		// SMTP password
+		$mail->SMTPSecure = 'ssl';
+		// Enable encryption, 'ssl' also accepted
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+		$mail->AddAddress($author_email);
+
 		if($flag == 1){ // full text pdf downloaded
 			$client_info = $this->Client_journal_model->get_client_info_download($id);
 
@@ -162,69 +271,57 @@ class Ejournal extends EJ_Controller {
 				$article = $row->art_title;
 			}
 
-			$nameuser = 'eJournal Admin';
-			$usergmail = 'nrcp.ejournal@gmail.com';
-			$password = '<<NRCP!!ejournal>>';
-			$mail = new PHPMailer;
-			$mail->isSMTP();
-			$mail->Host = "smtp.gmail.com";
-			// Specify main and backup server
-			$mail->SMTPAuth = true;
-			$mail->Port = 465;
-			// Enable SMTP authentication
-			$mail->Username = $usergmail;
-			// SMTP username
-			$mail->Password = $password;
-			// SMTP password
-			$mail->SMTPSecure = 'ssl';
-			// Enable encryption, 'ssl' also accepted
-			$mail->From = $usergmail;
-			$mail->FromName = $nameuser;
-			$mail->AddAddress($author_email);
-			$mail->AddBCC('gerardbalde15@gmail.com');
 
-			$htmlBody = "<p>
-			Dear " . $author . ",
-			
-			<br/><br/>
+			// get email notification content
+			$email_contents = $this->Email_model->get_email_content(2);
 
-			This is to inform you that your research article entitled <strong>\"" . $article . "\"</strong>
-			was downloaded by: <br/><br/> 
+			// add cc/bcc
+			foreach($email_contents as $row){
+				$email_subject = $row->enc_subject;
+				$email_contents = $row->enc_content;
 
-			Name        	 : <strong>" . $name . " " . $member . "</strong> <br/>
-			Affiliation      : <strong>" . $affiliation . "</strong> <br/>
-			Country          : <strong>" . $country . "</strong> <br/>
-			Purpose          : <strong>" . $purpose . "</strong> <br/>
-			Date             : <strong>" . $date . "</strong> <br/>
-			Source	         : <a href='https://researchjournal.nrcp.dost.gov.ph/' target='_blank'>https://researchjournal.nrcp.dost.gov.ph/</a>
-			
-			<br/><br/>
+				if( strpos($row->enc_cc, ',') !== false ) {
+					$email_cc = explode(',', $row->enc_cc);
+				}else{
+					$email_cc = array();
+					array_push($email_cc, $row->enc_cc);
+				}
 
-			Thank you.
+				if( strpos($row->enc_bcc, ',') !== false ) {
+					$email_bcc = explode(',', $row->enc_bcc);
+				}else{
+					$email_bcc = array();
+					array_push($email_bcc, $row->enc_bcc);
+				}
 
-			<br/><br/>
-
-		    ** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **
-
-			</p>";
-			
-			// email content
-			$mail->Subject = "NRCP Journal Download";
-			$mail->Body = $htmlBody;
-			$mail->IsHTML(true);
-			$mail->smtpConnect([
-				'ssl' => [
-					'verify_peer' => false,
-					'verify_peer_name' => false,
-					'allow_self_signed' => true,
-				],
-			]);
-			if (!$mail->Send()) {
-				echo '</br></br>Message could not be sent.</br>';
-				echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
-				exit;
+				if( strpos($row->enc_user_group, ',') !== false ) {
+					$email_user_group = explode(',', $row->enc_user_group);
+				}else{
+					$email_user_group = array();
+					array_push($email_user_group, $row->enc_user_group);
+				}
 			}
 
+			// add exisiting email as cc
+			if(count($email_user_group) > 0){
+				$user_group_emails = array();
+				foreach($email_user_group as $grp){
+					$username = $this->Email_model->get_user_group_emails($grp);
+					array_push($user_group_emails, $username);
+				}
+			}
+
+			
+			$emailBody = str_replace('[FULL NAME]', $author, $email_contents);
+			$emailBody = str_replace('[ARTICLE]', $article, $emailBody);
+			$emailBody = str_replace('[NAME]', $name, $emailBody);
+			$emailBody = str_replace('[MEMBER]', $member, $emailBody);
+			$emailBody = str_replace('[AFFILIATION]', $affiliation, $emailBody);
+			$emailBody = str_replace('[COUNTRY]', $country, $emailBody);
+			$emailBody = str_replace('[PURPOSE]', $purpose, $emailBody);
+			$emailBody = str_replace('[LINK]', $link, $emailBody);
+			
+	
 		}else{ // articles cited
 			$client_info = $this->Client_journal_model->get_client_info_citation($id);
 
@@ -232,72 +329,100 @@ class Ejournal extends EJ_Controller {
 				
 				$author = $row->art_author;
 				$name = $row->cite_name;
-				$email = $row->cite_email;
+				$client_email = $row->cite_email;
+				$affiliation = $row->cite_affiliation;
+				$country = $row->cite_country;
 				$date = $row->cite_date;
 				$member = ($row->cite_member == 1) ? '(NRCP member)' : '';
 				$article = $row->art_title;
 			}
 
-			$nameuser = 'eJournal Admin';
-			$usergmail = 'nrcp.ejournal@gmail.com';
-			$password = '<<NRCP!!ejournal>>';
-			$mail = new PHPMailer;
-			$mail->isSMTP();
-			$mail->Host = "smtp.gmail.com";
-			// Specify main and backup server
-			$mail->SMTPAuth = true;
-			$mail->Port = 465;
-			// Enable SMTP authentication
-			$mail->Username = $usergmail;
-			// SMTP username
-			$mail->Password = $password;
-			// SMTP password
-			$mail->SMTPSecure = 'ssl';
-			// Enable encryption, 'ssl' also accepted
-			$mail->From = $usergmail;
-			$mail->FromName = $nameuser;
-			$mail->AddAddress($author_email);
-			$mail->AddBCC('gerardbalde15@gmail.com');
+			// get email notification content
+			$email_contents = $this->Email_model->get_email_content(1);
 
-			$htmlBody = "<p>
-			Dear " . $author . ",
-			
-			<br/><br/>
+			// add cc/bcc
+			foreach($email_contents as $row){
+				$email_subject = $row->enc_subject;
+				$email_contents = $row->enc_content;
 
-			This is to inform you that your research article entitled <strong>\"" . $article . "\"</strong>
-			was cited by: <br/><br/> 
+				if( strpos($row->enc_cc, ',') !== false ) {
+					$email_cc = explode(',', $row->enc_cc);
+				}else{
+					$email_cc = array();
+					array_push($email_cc, $row->enc_cc);
+				}
 
-			Name        	 : <strong>" . $name . " " . $member ."</strong> <br/>
-			Email            : <strong>" . $email . "</strong> <br/>
-			Date             : <strong>" . $date . "</strong> <br/>
-			Source	         : <a href='https://researchjournal.nrcp.dost.gov.ph/' target='_blank'>https://researchjournal.nrcp.dost.gov.ph/</a>
-			
-			<br/><br/>
+				if( strpos($row->enc_bcc, ',') !== false ) {
+					$email_bcc = explode(',', $row->enc_bcc);
+				}else{
+					$email_bcc = array();
+					array_push($email_bcc, $row->enc_bcc);
+				}
 
-			Thank you.
-
-			<br/><br/>
-
-			** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **
-
-			</p>";
-			
-			// email content
-			$mail->Subject = "NRCP Journal Citation";
-			$mail->Body = $htmlBody;
-			$mail->IsHTML(true);
-			$mail->smtpConnect([
-				'ssl' => [
-					'verify_peer' => false,
-					'verify_peer_name' => false,
-					'allow_self_signed' => true,
-				],
-			]);
-			if (!$mail->Send()) {
-				echo '</br></br>Message could not be sent.</br>';
-				echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
-				exit;
+				if( strpos($row->enc_user_group, ',') !== false ) {
+					$email_user_group = explode(',', $row->enc_user_group);
+				}else{
+					$email_user_group = array();
+					array_push($email_user_group, $row->enc_user_group);
+				}
 			}
+
+			// add exisiting email as cc
+			if(count($email_user_group) > 0){
+				$user_group_emails = array();
+				foreach($email_user_group as $grp){
+					$username = $this->Email_model->get_user_group_emails($grp);
+					array_push($user_group_emails, $username);
+				}
+			}
+
+			$link = "<a href='https://researchjournal.nrcp.dost.gov.ph/' target='_blank'>https://researchjournal.nrcp.dost.gov.ph/</a>";
+			$emailBody = str_replace('[FULL NAME]', $author, $email_contents);
+			$emailBody = str_replace('[ARTICLE]', $article, $emailBody);
+			$emailBody = str_replace('[NAME]', $name, $emailBody);
+			$emailBody = str_replace('[MEMBER]', $member, $emailBody);
+			$emailBody = str_replace('[EMAIL]', $client_email, $emailBody);
+			$emailBody = str_replace('[LINK]', $link, $emailBody);
+			$emailBody = str_replace('[AFFILIATION]', $affiliation, $emailBody);
+			$emailBody = str_replace('[COUNTRY]', $country, $emailBody);
+		
+		}
+
+		// replace reserved words
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
+			}
+		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
+
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
+		$mail->IsHTML(true);
+		$mail->smtpConnect([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+				'allow_self_signed' => true,
+			],
+		]);
+		if (!$mail->Send()) {
+			echo '</br></br>Message could not be sent.</br>';
+			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
+			exit;
 		}
 	}
 
@@ -308,14 +433,9 @@ class Ejournal extends EJ_Controller {
 	 * @param [string] $recipient		client's email
 	 * @return void
 	 */
-	public function download_pdf_continue($download_id, $recipient, $client_id) {
+	public function download_pdf_continue($client_id, $download_id, $recipient) {
 
-		$ref = random_string('alnum', 8) . date('ymdhis');
-		$fdbk_sess = array(
-			'client_id' => $client_id,
-			'fdbk_ref' => $ref,
-		);
-		$this->session->set_userdata($fdbk_sess);
+
 
 		//Server
 		$file_to_attach = '/var/www/html/ejournal/assets/uploads/pdf/';
@@ -334,29 +454,74 @@ class Ejournal extends EJ_Controller {
 			$att = $row->art_full_text_pdf;
 		}
 
-		//email
-		$nameuser = 'EJOURNAL Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		$client = $this->Client_journal_model->get_client_by_id($client_id);
+
+		foreach ($client as $row) {
+			$client_title = $row->clt_title;
+			$client_name = $row->clt_name;
+			$client_aff = $row->clt_affiliation;
+			$client_country = $row->clt_country;
+		}
+
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content(3);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+			}else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+			}else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+			}else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+				
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+
+		// setup email config
 		$mail = new PHPMailer;
 		$mail->isSMTP();
-		// $mail->SMTPDebug  = 2;
-		// Set mailer to use SMTP
 		$mail->Host = "smtp.gmail.com";
-
 		// Specify main and backup server
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		$mail->AddBCC('gerardbalde15@gmail.com');
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
 
 		if ($file_size >= 26214400) {
 			$show_file = '*** Requested file exceeds 25MB. Please contact us. ***';
@@ -368,29 +533,58 @@ class Ejournal extends EJ_Controller {
 
 		$mail->AddAddress($recipient);
 
-		$htmlBody = "<p style=\"font-family:Georgia, Times New Roman, Times, serif; font-size:14px\">
-		Good Day!,<br /><br />
+		// replace reserved words
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
+			}
+		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
 
-		Thank you for providing your information. Please, see the attached article you have requested.<br /><br /><br />
-		Title       : <strong>" . $title . "</strong><br />
-		Author      : <strong>" . $author . "</strong><br />
-		Affiliation : <strong>" . $aff . "</strong><br />
-		Email       : <strong>" . $aemail . "</strong><br />
-		Filename    : <strong>" . $show_file . "</strong><br /><br /><br />
+		$link = "<a href='https://researchjournal.nrcp.dost.gov.ph/client/ejournal/customer_service' 
+		style='box-shadow: 0px 0px 0px 2px #97c4fe;
+		background:linear-gradient(to bottom, #3d94f6 5%, #1e62d0 100%);
+		background-color:#3d94f6;
+		border-radius:42px;
+		border:1px solid #337fed;
+		display:inline-block;
+		cursor:pointer;
+		color:#ffffff;
+		font-family:Arial;
+		font-size:19px;
+		padding:10px 21px;
+		text-decoration:none;
+		text-shadow:0px 1px 50px #1570cd;'
+		>&#8594; DOST-NRCP Satisfaction Feedback Form
+		</a>";
 
-		Please leave your comments and feedback here:
-		
-		<a href='https://researchjournal.nrcp.dost.gov.ph/client/ejournal/customer_service'>DOST-NRCP Satisfaction Feedback Form</a>
+		$emailBody = str_replace('[CLIENT_TITLE]', $client_title, $email_contents);
+		$emailBody = str_replace('[CLIENT_NAME]', $client_name, $emailBody);
+		$emailBody = str_replace('[CLIENT_AFFILIATION]', $client_aff, $emailBody);
+		$emailBody = str_replace('[CLIENT_COUNTRY]', $client_country, $emailBody);
 
-		<br /><br />
-		
-		
-		** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
+		$emailBody = str_replace('[AUTHOR]', $author, $emailBody);
+		$emailBody = str_replace('[AFFILIATION]', $aff, $emailBody);
+		$emailBody = str_replace('[EMAIL]', $aemail, $emailBody);
+		$emailBody = str_replace('[FILE]', $show_file, $emailBody);
+		$emailBody = str_replace('[LINK]', $link, $emailBody);
 
-
-		</p>";
-		$mail->Subject = "eJournal Full Text pdf";
-		$mail->Body = $htmlBody;
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -500,7 +694,9 @@ class Ejournal extends EJ_Controller {
 	 * @return void
 	 */
 	public function search($filter, $keyword) {
-		$output = $this->Search_model->search_ejournal($filter, rawurldecode($keyword));
+
+		$clean_keyword = str_replace('%C3%B1','ñ',str_replace('%2C',',',str_replace('+',' ',$keyword)));
+		$output = $this->Search_model->search_ejournal($filter, $clean_keyword);
 
 		$data['result'] = $output;
 		$data['keyword'] = $keyword;
@@ -511,7 +707,7 @@ class Ejournal extends EJ_Controller {
 		$data['main_content'] = "client/search_results";
 		$this->_LoadPage('common/body', $data);
 
-		if (strlen(rawurldecode($keyword)) >= 3) {
+		if (strlen($clean_keyword) >= 3) {
 			$stop_words = array("a", "an", "the", "in", "of", "on", "are", "be", "if", "into", "which");
 			if (in_array($keyword, $stop_words)) {} else {
 
@@ -565,7 +761,7 @@ class Ejournal extends EJ_Controller {
 	 * @return void
 	 */
 	public function get_acoa_details($id, $data) {
-		$output = $this->Client_journal_model->get_acoa_details($id, rawurldecode($data));
+		$output = $this->Client_journal_model->get_acoa_details($id, str_replace('%C3%B1','ñ',str_replace('+',' ',$data)));
 		echo json_encode($output);
 	}
 
@@ -577,18 +773,170 @@ class Ejournal extends EJ_Controller {
 	 */
 	public function save_citation($id)
 	{
-		$post['cite_name'] = $this->input->post('cite_name', TRUE);
-		$post['cite_email'] = $this->input->post('cite_email', TRUE);
+
+		
+
+		$recipient = $this->input->post('cite_email', TRUE);
+		$citation = $this->input->post('cite_value', TRUE);
+
+		
+		$tableName = 'tblcitations';
+		$result = $this->db->list_fields($tableName);
+		$post = array();
+
+		foreach ($result as $i => $field) {
+				$post[$field] = $this->input->post($field, TRUE);
+				$client_title = $this->input->post('cite_title', TRUE);
+				$client_name = $this->input->post('cite_name', TRUE);
+				$client_aff = $this->input->post('cite_affiliation', TRUE);
+				$client_country = $this->input->post('cite_country', TRUE);
+			
+		}
+
 		$post['cite_member'] = $this->input->post('cite_member', TRUE);
 		$post['cite_art_id'] = $id;
 		$post['date_created'] = date('Y-m-d H:i:s');
+		
 
 		$last_insert_id = $this->Client_journal_model->save_citation(array_filter($post));
+
+		$ref = random_string('alnum', 8) . date('ymdhis');
+		$fdbk_sess = array(
+			'client_id' => $last_insert_id,
+			'fdbk_ref' => $ref,
+		);
+		$this->session->set_userdata($fdbk_sess);
 
 		echo $last_insert_id;
 
 		// send email to author after citing his/her article
 		$this->notify_author($last_insert_id, $id, 2); // 2 - cited article
+
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content(4);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+			}else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+			}else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+			}else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+				
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+
+		// setup email config
+		$mail = new PHPMailer;
+		$mail->isSMTP();
+		$mail->Host = "smtp.gmail.com";
+		// Specify main and backup server
+		$mail->SMTPAuth = true;
+		$mail->Port = 465;
+		// Enable SMTP authentication
+		$mail->Username = $sender_email;
+		// SMTP username
+		$mail->Password = $password;
+		// SMTP password
+		$mail->SMTPSecure = 'ssl';
+		// Enable encryption, 'ssl' also accepted
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+
+		$mail->AddAddress($recipient);
+
+		// replace reserved words
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
+			}
+		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
+
+		$link = "<a href='https://researchjournal.nrcp.dost.gov.ph/client/ejournal/customer_service' 
+		style='box-shadow: 0px 0px 0px 2px #97c4fe;
+		background:linear-gradient(to bottom, #3d94f6 5%, #1e62d0 100%);
+		background-color:#3d94f6;
+		border-radius:42px;
+		border:1px solid #337fed;
+		display:inline-block;
+		cursor:pointer;
+		color:#ffffff;
+		font-family:Arial;
+		font-size:19px;
+		padding:10px 21px;
+		text-decoration:none;
+		text-shadow:0px 1px 50px #1570cd;'
+		>&#8594; DOST-NRCP Satisfaction Feedback Form
+		</a>";
+		
+		
+		$emailBody = str_replace('[CLIENT_TITLE]', $client_title, $email_contents);
+		$emailBody = str_replace('[CLIENT_NAME]', $client_name, $emailBody);
+		$emailBody = str_replace('[CLIENT_AFFILIATION]', $client_aff, $emailBody);
+		$emailBody = str_replace('[CLIENT_COUNTRY]', $client_country, $emailBody);
+
+		$emailBody = str_replace('[CITATION]', $citation, $emailBody);
+		$emailBody = str_replace('[LINK]', $link, $emailBody);
+
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
+		$mail->IsHTML(true);
+		$mail->smtpConnect([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+				'allow_self_signed' => true,
+			],
+		]);
+
+		if (!$mail->Send()) {
+			echo '</br></br>Message could not be sent.</br>';
+			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
+			exit;
+		}
 	}
 
 	/**
@@ -606,6 +954,7 @@ class Ejournal extends EJ_Controller {
 		$check_if_fdbk_ref_exist = $this->CSF_model->check_fdbk_ref($ref);
 		
 		if($check_client_id_exists == 1 && $check_if_fdbk_ref_exist == 0){
+		// if($check_if_fdbk_ref_exist == 0){
 			$data['main_title'] = "eJournal";
 			$data['main_content'] = "client/feedback";
 			$data['questions'] = $this->Library_model->get_csf_questions();
@@ -617,6 +966,32 @@ class Ejournal extends EJ_Controller {
 			redirect('/');
 		}
 
+		// $data['main_title'] = "eJournal";
+		// 	$data['main_content'] = "client/feedback";
+		// 	$data['questions'] = $this->Library_model->get_csf_questions();
+		// 	$data['affiliations'] = $this->Library_model->get_csf_q_choices(1);
+		// 	$data['services'] = $this->Library_model->get_csf_q_choices(2);
+		// 	$data['choices'] = $this->Library_model->get_csf_q_choices(3);
+		// 	$this->_LoadPage('common/body', $data);
+			
+	}
+
+	
+
+	/**
+	 * Display customer service feedback form for testing only
+	 *
+	 * @return void
+	 */
+	public function feedback_form() {
+		
+			$data['main_title'] = "eJournal";
+			$data['main_content'] = "client/feedback";
+			$data['questions'] = $this->Library_model->get_csf_questions();
+			$data['affiliations'] = $this->Library_model->get_csf_q_choices(1);
+			$data['services'] = $this->Library_model->get_csf_q_choices(2);
+			$data['choices'] = $this->Library_model->get_csf_q_choices(3);
+			$this->_LoadPage('common/body', $data);
 	}
 
 	public function submit_feedback() {
@@ -628,6 +1003,8 @@ class Ejournal extends EJ_Controller {
 	
 		$svc_fdbk_q_id      = $this->input->post('svc_fdbk_q_id[]', TRUE);       
         $svc_fdbk_q_answer  = $this->input->post('svc_fdbk_q_answer[]', TRUE);  
+        $svc_fdbk_q_other_answer  = $this->input->post('svc_fdbk_q_other_answer[]', TRUE);  
+
 		
 		if($svc_fdbk_q_id == ''){
 			redirect('/');
@@ -640,15 +1017,17 @@ class Ejournal extends EJ_Controller {
 			foreach($ids as $key => $q_id){
 
 				$data= array( 
-					'svc_fdbk_q_id'         =>  $q_id,                
-					'svc_fdbk_q_answer'     =>  $svc_fdbk_q_answer[$c],
-					'svc_fdbk_usr_id'       =>  $id,    
-					'date_created'          =>  date('Y-m-d H:i:s'),
-					'svc_fdbk_ref'          =>  $ref
+					'svc_fdbk_q_id'            =>  $q_id,                
+					'svc_fdbk_q_answer'        =>  $svc_fdbk_q_answer[$c],
+					'svc_fdbk_q_other_answer'  =>  (isset($svc_fdbk_q_other_answer[$c])) ? $svc_fdbk_q_other_answer[$c] : '',
+					'svc_fdbk_q_code        '  =>  'CSF-V2022',
+					'svc_fdbk_usr_id'          =>  $id,    
+					'date_created'             =>  date('Y-m-d H:i:s'),
+					'svc_fdbk_ref'             =>  $ref,
 					);
 				$c++;
 				
-				$output = $this->CSF_model->save_csf($data);
+			$output = $this->CSF_model->save_csf(array_filter($data));
 			}
 
 			$this->success_fdbk();

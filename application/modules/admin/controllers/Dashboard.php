@@ -36,6 +36,7 @@ class Dashboard extends EJ_Controller {
 		$this->load->model('Log_model');
 		$this->load->model('oprs/User_model');
 		$this->load->model('Coauthor_model');
+		$this->load->model('Email_model');
 		$this->load->helper('is_online_helper');
 	}
 
@@ -103,6 +104,8 @@ class Dashboard extends EJ_Controller {
 				$data['articles'] = $this->Article_model->get_all_articles();
 				$data['citees'] = $this->Article_model->get_all_citees();
 				$data['tables'] = $this->Library_model->get_tables();
+				$data['emails'] = $this->Email_model->get_contents();
+				$data['user_roles'] = $this->Email_model->get_email_user_roles();
 
 				$acoa_arr = explode(",& ", $this->Coauthor_model->get_author_coauthors_list());
 				sort($acoa_arr, SORT_STRING);
@@ -125,6 +128,16 @@ class Dashboard extends EJ_Controller {
 	 */
 	public function sex_chart(){
 		$output = $this->Client_model->get_clients_graph();
+		echo json_encode($output);
+	}
+
+	public function sex_line(){
+		$output = $this->Client_model->get_clients_line_graph();
+		echo json_encode($output);
+	}
+
+	public function sex_monthly_line(){
+		$output = $this->Client_model->get_clients_monthly_line_graph();
 		echo json_encode($output);
 	}
 
@@ -355,47 +368,35 @@ class Dashboard extends EJ_Controller {
 		echo json_encode($notif);
 	}
 
-	/**
-	 * Retrieve editorial boards
-	 *
-	 * @return  array  editorial boards
-	 */
-	public function editorial() {
-		$data['country'] = $this->Library_model->get_library('tblcountries');
-		$data['sex'] = $this->Library_model->get_library('tblsex');
-		$data['journal'] = $this->Journal_model->get_journals();
-		$data['journal_max'] = $this->Journal_model->get_journal_max();
-		$data['u_journal'] = $this->Journal_model->get_unique_journal();
-		$data['u_year'] = $this->Journal_model->get_unique_journal_year();
-		$data['client_count'] = $this->Client_model->client_count();
-		$data['art_count'] = $this->Article_model->art_count();
-		$data['edt_count'] = $this->Editorial_model->edt_count();
-		$data['jor_count'] = $this->Journal_model->jor_count();
-		$data['hit_count'] = $this->Journal_model->hit_count();
-		$data['cite_count'] = $this->Journal_model->cite_count();
-		$data['editorials'] = $this->Editorial_model->get_editorials();
-		$data['vis_count'] = $this->Dashboard_model->vis_count();
-		$data['online'] = $this->Login_model->online_users(_UserIdFromSession());
-		$data['popular'] = $this->Article_model->top_five();
-		$data['logs'] = $this->Log_model->get_logs();
-		$data['all_logs'] = $this->Log_model->get_all_logs();
-		$data['vis_all'] = $this->Dashboard_model->vis_count_all();
+	// /**
+	//  * Retrieve editorial boards
+	//  *
+	//  * @return  array  editorial boards
+	//  */
+	// public function editorial() {
+	// 	// $data['country'] = $this->Library_model->get_library('tblcountries');
+	// 	// $data['sex'] = $this->Library_model->get_library('tblsex');
+	// 	// $data['journal'] = $this->Journal_model->get_journals();
+	// 	// $data['journal_max'] = $this->Journal_model->get_journal_max();
+	// 	// $data['u_journal'] = $this->Journal_model->get_unique_journal();
+	// 	// $data['u_year'] = $this->Journal_model->get_unique_journal_year();
+	// 	// $data['client_count'] = $this->Client_model->client_count();
+	// 	// $data['art_count'] = $this->Article_model->art_count();
+	// 	// $data['edt_count'] = $this->Editorial_model->edt_count();
+	// 	// $data['jor_count'] = $this->Journal_model->jor_count();
+	// 	// $data['hit_count'] = $this->Journal_model->hit_count();
+	// 	// $data['cite_count'] = $this->Journal_model->cite_count();
+	// 	// $data['editorials'] = $this->Editorial_model->get_editorials();
+	// 	// $data['vis_count'] = $this->Dashboard_model->vis_count();
+	// 	// $data['online'] = $this->Login_model->online_users(_UserIdFromSession());
+	// 	// $data['popular'] = $this->Article_model->top_five();
+	// 	// $data['logs'] = $this->Log_model->get_logs();
+	// 	// $data['all_logs'] = $this->Log_model->get_all_logs();
+	// 	// $data['vis_all'] = $this->Dashboard_model->vis_count_all();
 
-		$tableName = 'tbleditorials';
-		$result = $this->db->list_fields($tableName);
-		$post = array();
+		
 
-		foreach ($result as $i => $field) {
-			if ($field != 'edt_id') {
-				if (!empty($this->input->post($field, TRUE))) {
-					$post[$field] = $this->input->post($field, TRUE);
-				}
-			}
-		}
-
-		$post['date_created'] = date('Y-m-d H:i:s');
-		$output = $this->Editorial_model->save_editorial($post);
-	}
+	// }
 	
 	 /**
 	 *  Retrieve and display total number of visitors
@@ -442,7 +443,7 @@ class Dashboard extends EJ_Controller {
 			$data = $this->upload->data();
 		}
 
-		logs(_UserIdFromSession(), 'updated author\'s guidelines.', '0', _UserRoleFromSession());
+		save_log_ej(_UserIdFromSession(), 'updated author\'s guidelines.', '0', _UserRoleFromSession());
 	}
 
 	/**
@@ -485,7 +486,7 @@ class Dashboard extends EJ_Controller {
 			$data = $this->upload->data();
 		}
 
-		logs(_UserIdFromSession(), 'updated author\'s home description and call for papers.', '0', _UserRoleFromSession());
+		save_log_ej(_UserIdFromSession(), 'updated author\'s home description and call for papers.', '0', _UserRoleFromSession());
 	}
 
 	/**

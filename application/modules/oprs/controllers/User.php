@@ -24,18 +24,18 @@ class User extends OPRS_Controller {
 					$data['logs'] = $this->Log_model->count_logs();
 					$data['main_title'] = "OPRS";
 					$data['main_content'] = "oprs/user";
-					$data['man_count'] = $this->Manuscript_model->count_manuscript(0);
-					$data['man_new'] = $this->Manuscript_model->count_manuscript(1);
-					$data['man_onreview'] = $this->Manuscript_model->count_manuscript(2);
-					$data['man_reviewed'] = $this->Manuscript_model->count_manuscript(3);
-					$data['man_final'] = $this->Manuscript_model->count_manuscript(4);
-					$data['man_for_p'] = $this->Manuscript_model->count_manuscript(5);
-					$data['man_pub'] = $this->Manuscript_model->count_manuscript(6);	
+					$data['man_count'] = $this->Manuscript_model->get_manuscripts(0);
+					$data['man_new'] = $this->Manuscript_model->get_manuscripts(1);
+					$data['man_onreview'] = $this->Manuscript_model->get_manuscripts(2);
+					$data['man_reviewed'] = $this->Manuscript_model->get_manuscripts(3);
+					$data['man_final'] = $this->Manuscript_model->get_manuscripts(4);
+					$data['man_for_p'] = $this->Manuscript_model->get_manuscripts(5);
+					$data['man_pub'] = $this->Manuscript_model->get_manuscripts(6);	
 					$data['usr_count'] = $this->User_model->count_user();
 					$data['feed_count'] = $this->Feedback_model->count_feedbacks();
 					$this->_LoadPage('common/body', $data);
 					$this->session->unset_userdata('_oprs_usr_message');
-				}else if(_UserRoleFromSession() == 5 || _UserRoleFromSession() == 9){
+				}else if(_UserRoleFromSession() == 5 || _UserRoleFromSession() == 12 || _UserRoleFromSession() == 6){
 					redirect('oprs/manuscripts');
 				}else {
 					redirect('oprs/dashboard');
@@ -89,15 +89,7 @@ class User extends OPRS_Controller {
 		$post['usr_role'] = $this->input->post('usr_role', TRUE);
 		$role = $post['usr_role'];
 		$post['usr_sys_acc'] = $this->input->post('usr_sys_acc', TRUE);
-		$post['usr_desc'] = (($role == '1') ? 'Author' :
-					((($role == '2') ? 'Co-Author' :
-						((($role == '3') ? 'Managing Editor' :
-							((($role == '4') ? 'Editor-in-Chief' :
-								(($role == '5') ? 'Reviewer' :
-									(($role == '6') ? 'Manager' :
-										(($role == '7') ? 'Admin' :
-											(($role == '8') ? 'Superadmin' :
-												'Committee')))))))))));
+		$post['usr_desc'] = $this->User_model->get_role($role);
 		$where['usr_id'] = $id;
 		$this->User_model->update_user(array_filter($post), $where);
 	}
@@ -118,15 +110,14 @@ class User extends OPRS_Controller {
 				$role = $this->input->post('usr_role', true);
 				$post[$field] = $this->input->post($field, true);
 				$post['usr_password'] = password_hash($this->input->post('usr_password', true), PASSWORD_BCRYPT);
-				$post['usr_desc'] = (($role == '1') ? 'Author' :
-					((($role == '2') ? 'Co-Author' :
-						((($role == '3') ? 'Managing Editor' :
-							((($role == '4') ? 'Editor-in-Chief' :
-								(($role == '5') ? 'Reviewer' :
-									(($role == '6') ? 'Manager' :
-										(($role == '7') ? 'Admin' :
-											(($role == '8') ? 'Superadmin' :
-												'Committee')))))))))));
+				$post['usr_desc'] = ($role == '3' ? 'Managing Editor' :
+									($role == '12' ? 'Editor-in-Chief' :
+									($role == '6' ? 'Manager' :
+									($role == '7' ? 'Admin' :
+									($role == '10' ? 'Editor' :
+									($role == '11' ? 'Guest Editor' :
+									($role == '9' ? 'Publication Committee' : 'Layout')))))));
+
 				$post['usr_id'] = $id;
 			}
 		}

@@ -66,7 +66,7 @@
     top: 6rem;
     }
 
-        /* feedback */
+    /* feedback */
     .feedback-app {
     width: 90%;
     max-width: 500px;
@@ -101,10 +101,47 @@
     filter: grayscale(0);
     font-size: 4rem;
     }
+
+    /* star rating */
+    .rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: left;
+    margin-top: -20px;
+    padding-top: 0;
+    margin-left: -5px;
+    }
+
+    .rating > input{ display:none;}
+
+    .rating > label {
+    position: relative;
+        width: 1em;
+        font-size: 2.5vw;
+        color: gray;
+        cursor: pointer;
+    }
+    .rating > label::before{ 
+    content: "\2605";
+    position: absolute;
+    opacity: 0;
+    color: #FFD600;
+    }
+    .rating > label:hover:before,
+    .rating > label:hover ~ label:before {
+    opacity: 1 !important;
+    }
+
+    .rating > input:checked ~ label:before{
+    opacity:1;
+    }
+
+    .rating:hover > input:checked ~ label:before{ opacity: 0; }
+
     </style>
     
 </head>
 
-<body>
+<body style="overflow-y: scroll !important">
 
 

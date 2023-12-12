@@ -3,6 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 class Login_model extends CI_Model {
 	private $accounts = 'tblusers';
 	private $reviewers = 'tblreviewers';
+	private $editors = 'tbleditorials';
 	private $nonmembers = 'tblnonmembers';
 	//skms
 	private $memberships = 'tblmembership_profiles';
@@ -73,6 +74,7 @@ class Login_model extends CI_Model {
 		$data = $query->result();
 		return $data;
 	}
+
 	public function get_reviewer_info($id) {
 		$oprs = $this->load->database('dboprs', TRUE);
 		$oprs->select('rev_email,rev_man_id');
@@ -81,9 +83,18 @@ class Login_model extends CI_Model {
 		$query = $oprs->get();
 		$data = $query->result();
 		return $data;
-		// $result = $query->result_array();
-		// return $result[0]['rev_email'];
 	}
+
+	public function get_editor_info($id) {
+		$oprs = $this->load->database('dboprs', TRUE);
+		$oprs->select('edit_email,edit_man_id');
+		$oprs->from($this->editors);
+		$oprs->where('edit_id', $id);
+		$query = $oprs->get();
+		$data = $query->result();
+		return $data;
+	}
+
 	public function check_reveiwer_status($id, $man_id) {
 		$oprs = $this->load->database('dboprs', TRUE);
 		$oprs->select('*');

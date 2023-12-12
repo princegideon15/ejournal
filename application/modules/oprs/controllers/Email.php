@@ -7,6 +7,7 @@ class Email extends OPRS_Controller {
 		$objMail = $this->my_phpmailer->load();
 		$this->load->model('Manuscript_model');
 		$this->load->model('Review_model');
+		$this->load->model('Email_model');
 	}
 
 	/**
@@ -24,10 +25,10 @@ class Email extends OPRS_Controller {
 			$notif_sent = $val->rev_notif_status;
 			$r_days = (int)$daysleft;
 
-			if ($r_days < 7 && $notif_sent == 0) {
+			if ($r_days > 1 && $r_days < 7 && $notif_sent == 0) {
 				if ($val->rev_request_timer != 1){
 					// send notif if 1 day left and notif not sent yet
-					$this->email_notification_content($val->rev_email, $val->rev_man_id, $val->rev_id, $r_days);
+					$this->email_notification_content($val->rev_man_id, $val->rev_id, $r_days);
 				}
 
 				// $post['rev_notif_status'] = 1;
@@ -36,7 +37,7 @@ class Email extends OPRS_Controller {
 			} elseif($r_days == 1 && $notif_sent == 0){
 				if ($val->rev_request_timer != 1){
 					// send notif if 1 day left and notif not sent yet
-					$this->email_notification_content($val->rev_email, $val->rev_man_id, $val->rev_id, $r_days);
+					$this->email_notification_content($val->rev_man_id, $val->rev_id, $r_days);
 				}
 
 				$post['rev_notif_status'] = 1;
@@ -47,7 +48,7 @@ class Email extends OPRS_Controller {
 				$post['rev_status'] = 3;
 				$where['row_id'] = $val->row_id;
 				$this->Manuscript_model->update_reviewer(array_filter($post), $where);
-				$this->email_lapsed($val->rev_email, $val->rev_man_id, $val->rev_id);
+				$this->email_lapsed($val->rev_man_id, $val->rev_id,6); // request lapsed
 			}
 		}
 	}
@@ -69,13 +70,13 @@ class Email extends OPRS_Controller {
 
 			if ($r_days > 1 && $r_days < 7 && $notif_sent == 0) {
 				// send notif if 5 days left and notif not sent yet
-				$this->email_notification_content_review($val->rev_email, $val->rev_man_id, $val->rev_id, $r_days);
+				$this->email_notification_content_review($val->rev_man_id, $val->rev_id, $r_days);
 				// $post['rev_notif_status'] = 1;
 				// $where['row_id'] = $val->row_id;
 				// $this->Manuscript_model->update_reviewer(array_filter($post), $where);
 			} elseif($r_days == 1 && $notif_sent == 0){
 				// send notif if 1 day left and notif not sent yet
-				$this->email_notification_content_review($val->rev_email, $val->rev_man_id, $val->rev_id, $r_days);
+				$this->email_notification_content_review($val->rev_man_id, $val->rev_id, $r_days);
 				$post['rev_notif_status'] = 1;
 				$where['row_id'] = $val->row_id;
 				$this->Manuscript_model->update_reviewer(array_filter($post), $where);
@@ -88,7 +89,7 @@ class Email extends OPRS_Controller {
 				$where_lapsed['scr_man_rev_id'] = $val->rev_id;
 				$post_scr['scr_status'] = 3;
 				$this->Review_model->update_score_lapse(array_filter($post_scr), $where_lapsed);
-				$this->email_lapsed($val->rev_email, $val->rev_man_id, $val->rev_id);
+				$this->email_lapsed($val->rev_man_id, $val->rev_id,7); // review lapsed
 			} 
 		}
 	}
@@ -102,7 +103,7 @@ class Email extends OPRS_Controller {
 	 *
 	 * @return  void
 	 */
-	public function email_notification_content($email, $id, $rev_id, $r_days) {
+	public function email_notification_content($id, $rev_id, $r_days) {
 		// get manuscript info
 		$manus_info = $this->Manuscript_model->get_manus_for_email($id);
 		foreach ($manus_info as $key => $val) {
@@ -118,12 +119,56 @@ class Email extends OPRS_Controller {
 		foreach ($rev_info as $key => $val) {
 			$timeframe = $val->rev_timeframe;
 			$rev_timer = $val->rev_request_timer;
+			$rev_email = $val->rev_email;
+			$title = $val->rev_title;
+			$name = $val->rev_name;
 		}
 
-		// email
-		$nameuser = 'eJournal Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content(8);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+		    }else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+		    }else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+		    }else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+
+		$link_to = base_url() . 'oprs/login/reviewer';
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+		
+		// setup email config	
 		$mail = new PHPMailer;
 		$mail->isSMTP();
 		$mail->Host = "smtp.gmail.com";
@@ -131,66 +176,56 @@ class Email extends OPRS_Controller {
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		$link_to = base_url() . 'oprs/login/reviewer';
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
 		// Server
 		$file_to_attach = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/';
 		// Localhost
 		// $file_to_attach = $_SERVER['DOCUMENT_ROOT'].'/oprs/assets/uploads/manuscripts/';
-		$rev_c = 0;
-		$mail->AddBCC('gerardbalde15@gmail.com');
-		$mail->AddAddress($email);
+	
+		$mail->AddAddress($rev_email);
 		$mail->addAttachment($file_to_attach . $file_name);
-		$reviewer_info = $this->Review_model->get_rev_info($rev_id);
-		if (strpos($rev_id, 'R') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span><br/>' .
-				$val->rev_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span> : <br/><br/>';
-				$exp = $val->rev_specialization;
-			}
-		} else if (strpos($rev_id, 'NM') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_first_name . ' ' . $val->non_middle_name . ' ' . $val->non_last_name . '</strong></span><br/>' .
-				$val->non_affiliation . '<br/>' .
-				$val->non_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->non_specialization;
-			}
-		} else {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_first_name . ' ' . $val->pp_middle_name . ' ' . $val->pp_last_name . ' ' . $val->pp_extension . '</strong></span><br/>' .
-				$val->emp_pos_id . '<br/>' .
-				$val->emp_div_dept . '<br/>' .
-				$val->emp_ins_id . '<br/>' .
-				$val->emp_address . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->mpr_specialization;
+
+
+		// replace reserved words
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
 			}
 		}
-		// email content
-		$htmlBody = date("F j, Y") . '<br/><br/>' .
-			$header .
-			$dear .
-			'Please be reminded that there is only '.$r_days.' day/s left for you to ' .
-			'<u><a href="' . $link_to . '/' . $id . '/1/' . $rev_id . '/' . $timeframe . '" target="_blank" style="color:green;cursor:pointer;">ACCEPT</a></u> or <u><a href="' . $link_to . '/' . $id . '/0/' . $rev_id . '"' .
-			'style="color:red;cursor:pointer;">DECLINE</a></u> the request for review on manuscript titled <em>' . $man_title . '</em> for publication to the NRCP Research Journal. <br/><br/>' .
-				
-			'Thank you. <br/><br/>'.
-			
-			'Very truly yours,<br/>'.
-			'Managing Editor<br/>'.
-			'NRCP Research Journal<br/><br/>'.
-			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Request for Manuscript Review (".$r_days." day/s left)";
-		$mail->Body = $htmlBody;
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
+
+		$date = date("F j, Y") . '<br/><br/>';
+		$accept_decline ='<u><a href="' . $link_to . '/' . $id . '/1/' . $rev_id . '/' . $timeframe . '" target="_blank" style="color:green;cursor:pointer;">ACCEPT</a></u> or <u><a href="' . $link_to . '/' . $id . '/0/' . $rev_id . '"' .
+			'style="color:red;cursor:pointer;">DECLINE</a></u>';
+
+		$emailBody = str_replace('[FULL NAME]', $name, $email_contents);
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
+		$emailBody = str_replace('[DAYS]', $r_days, $emailBody);
+		$emailBody = str_replace('[ACCEPT/DECLINE]', $accept_decline, $emailBody);
+		$emailBody = str_replace('[MANUSCRIPT]', $man_title, $emailBody);
+		
+		// send email
+		$mail->Subject = $email_subject .' ('.$r_days.' day/s left)';
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -204,7 +239,6 @@ class Email extends OPRS_Controller {
 			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
 			exit;
 		}
-		$rev_c++;
 	}
 
 	/**
@@ -216,7 +250,7 @@ class Email extends OPRS_Controller {
 	 *
 	 * @return  void
 	 */
-	public function email_notification_content_review($email, $id, $rev_id, $r_days) {
+	public function email_notification_content_review($id, $rev_id, $r_days) {
 		// get manuscript info
 		$manus_info = $this->Manuscript_model->get_manus_for_email($id);
 		foreach ($manus_info as $key => $val) {
@@ -232,12 +266,61 @@ class Email extends OPRS_Controller {
 		foreach ($rev_info as $key => $val) {
 			$timeframe = $val->rev_timeframe;
 			$rev_timer = $val->rev_request_timer;
+			$rev_email = $val->rev_email;
+			$title = $val->rev_title;
+			$name = $val->rev_name;
 		}
 
-		// email
-		$nameuser = 'eJournal Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content(9);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+		    }else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+		    }else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+		    }else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+			
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+
+		$link_to = base_url() . 'oprs/login/reviewer';
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+		$file_to_attach = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/';
+		// Localhost
+		// $file_to_attach = $_SERVER['DOCUMENT_ROOT'].'/oprs/assets/uploads/manuscripts/';
+		
+		// setup email config		
 		$mail = new PHPMailer;
 		$mail->isSMTP();
 		$mail->Host = "smtp.gmail.com";
@@ -245,69 +328,45 @@ class Email extends OPRS_Controller {
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		$link_to = base_url() . 'oprs/login/reviewer';
-		// Server
-		$file_to_attach = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/';
-		// Localhost
-		// $file_to_attach = $_SERVER['DOCUMENT_ROOT'].'/oprs/assets/uploads/manuscripts/';
-		$rev_c = 0;
-		$mail->AddBCC('gerardbalde15@gmail.com');
-		$mail->AddAddress($email);
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+		$mail->AddAddress($rev_email);
 		$mail->addAttachment($file_to_attach . $file_name);
-		$reviewer_info = $this->Review_model->get_rev_info($rev_id);
-		if (strpos($rev_id, 'R') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span><br/>' .
-				$val->rev_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span> : <br/><br/>';
-				$exp = $val->rev_specialization;
+
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
 			}
-		} else if (strpos($rev_id, 'NM') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_first_name . ' ' . $val->non_middle_name . ' ' . $val->non_last_name . '</strong></span><br/>' .
-				$val->non_affiliation . '<br/>' .
-				$val->non_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->non_specialization;
+		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
 			}
-		} else {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_first_name . ' ' . $val->pp_middle_name . ' ' . $val->pp_last_name . ' ' . $val->pp_extension . '</strong></span><br/>' .
-				$val->emp_pos_id . '<br/>' .
-				$val->emp_div_dept . '<br/>' .
-				$val->emp_ins_id . '<br/>' .
-				$val->emp_address . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->mpr_specialization;
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
 			}
 		}
 
-		// email content
-		$htmlBody = date("F j, Y") . '<br/><br/>' .
-			$header .
-			$dear .
-			'May we remind you of your Review on the manuscript <em>"' . $man_title . '"</em> ' .
-			'which is being considered for publication in the NRCP Research Journal. Given the deadline set, may we expect the '. 
-			'accomplished evaluation/score sheet within the next '.$r_days.' day/s?  <br/><br/>' .
-
-			'In case we do not hear from you, we shall automatically render your username and password deactivated. <br/>' .
-
-			'Thank you. <br/><br/>' .
-
-			'Very truly yours,<br/>' .
-			'Managing Editor<br/>'. 
-			'NRCP Research Journal <br/><br/>' .
-			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Manuscript Review (".$r_days." day/s left)";
-		$mail->Body = $htmlBody;
+		// replace reserved words
+		$emailBody = str_replace('[FULL NAME]', $name, $email_contents);
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
+		$emailBody = str_replace('[MANUSCRIPT]', $man_title, $emailBody);
+		$emailBody = str_replace('[DAYS]', $r_days, $emailBody);
+		
+		//send email
+		$mail->Subject = $email_subject . ' ('.$r_days.' day/s left)';
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -321,7 +380,6 @@ class Email extends OPRS_Controller {
 			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
 			exit;
 		}
-		$rev_c++;
 	}
 
 	/**
@@ -333,11 +391,11 @@ class Email extends OPRS_Controller {
 	 *
 	 * @return  void
 	 */
-	public function email_lapsed($email, $id, $rev_id) {
+	public function email_lapsed($id, $rev_id, $email_notif_id) {
 		// get manuscript info
 		$manus_info = $this->Manuscript_model->get_manus_for_email($id);
 		foreach ($manus_info as $key => $val) {
-			$man_title = $val->man_title;
+			$manuscript = $val->man_title;
 			$file_name = $val->man_file;
 			$man_author = $val->man_author;
 			$man_affiliation = $val->man_affiliation;
@@ -349,12 +407,57 @@ class Email extends OPRS_Controller {
 		foreach ($rev_info as $key => $val) {
 			$timeframe = $val->rev_timeframe;
 			$rev_timer = $val->rev_request_timer;
+			$rev_email = $val->rev_email;
+			$title = $val->rev_title;
+			$name = $val->rev_name;
 		}
 
-		// email
-		$nameuser = 'eJournal Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content($email_notif_id);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+		    }else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+		    }else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+		    }else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+			
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+		
+		// setup email config
 		$mail = new PHPMailer;
 		$mail->isSMTP();
 		$mail->Host = "smtp.gmail.com";
@@ -362,65 +465,47 @@ class Email extends OPRS_Controller {
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		// $link_to = base_url() . 'oprs/login/reviewer';
-		// Server
-		// $file_to_attach = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/';
-		// Localhost
-		// $file_to_attach = $_SERVER['DOCUMENT_ROOT'].'/oprs/assets/uploads/manuscripts/';
-		$rev_c = 0;
-		$mail->AddBCC('gerardbalde15@gmail.com');
-		$mail->AddCC('lanie.manalo@nrcp.dost.gov.ph');
-		$mail->AddAddress($email);
-		// $mail->addAttachment($file_to_attach . $file_name);
-		$reviewer_info = $this->Review_model->get_rev_info($rev_id);
-		if (strpos($rev_id, 'R') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span><br/>' .
-				$val->rev_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span> : <br/><br/>';
-				$exp = $val->rev_specialization;
-			}
-		} else if (strpos($rev_id, 'NM') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_first_name . ' ' . $val->non_middle_name . ' ' . $val->non_last_name . '</strong></span><br/>' .
-				$val->non_affiliation . '<br/>' .
-				$val->non_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->non_specialization;
-			}
-		} else {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_first_name . ' ' . $val->pp_middle_name . ' ' . $val->pp_last_name . ' ' . $val->pp_extension . '</strong></span><br/>' .
-				$val->emp_pos_id . '<br/>' .
-				$val->emp_div_dept . '<br/>' .
-				$val->emp_ins_id . '<br/>' .
-				$val->emp_address . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->mpr_specialization;
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+		$mail->AddAddress($rev_email);
+
+		
+
+		// replace reserved words
+		// redirection link
+
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
 			}
 		}
-		// email content
-		$htmlBody = date("F j, Y") . '<br/><br/>' .
-			$header .
-			$dear .
-			'We understand your busy schedule. We are looking forward to work with you in the future issues. <br/><br/>'.
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
 
-			'Thank you. <br/><br/>'.
-			
-			'Very truly yours,<br/>'.
-			'Managing Editor<br/>'.
-			'NRCP Research Journal<br/><br/>'.
-			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Manuscript Review Lapsed";
-		$mail->Body = $htmlBody;
+		$emailBody = str_replace('[FULL NAME]', $name, $email_contents);
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
+		$emailBody = str_replace('[MANUSCRIPT]', $manuscript, $emailBody);
+
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -434,6 +519,5 @@ class Email extends OPRS_Controller {
 			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
 			exit;
 		}
-		$rev_c++;
 	}
 }

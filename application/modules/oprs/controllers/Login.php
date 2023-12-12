@@ -9,6 +9,7 @@ class Login extends OPRS_Controller {
 		$this->load->model('Manuscript_model');
 		$this->load->model('Review_model');
 		$this->load->model('Library_model');
+		$this->load->model('Email_model');
 		$objMail = $this->my_phpmailer->load();
 	}
 
@@ -244,43 +245,103 @@ class Login extends OPRS_Controller {
 	 * @return  void
 	 */
 	public function reviewer($man_id, $action, $id, $days = null) {
-		$output = $this->Login_model->check_reveiwer_status($id, $man_id);
-		foreach ($output as $key => $row) {
-			$status = $row->rev_status;
-			$response = $row->rev_date_respond;
-		}
-		if ($status == 0 || $status == 1) {
-			// determine if reviewer has clicked accept or decline already
-			$action = ($status == 1) ? 'accepted' : 'declined';
-			$array_msg = array('icon' => 'fa fa-exclamation-triangle', 'class' => 'alert-warning', 'msg' => 'Sorry, you have already ' . $action . ' the request.');
-			$this->session->set_flashdata('_oprs_login_msg', $array_msg);
-			redirect('oprs/login');
-			$this->session->unset_userdata('_oprs_login_msg');
-		} else if ($status == 3) {
-			$array_msg = array('icon' => 'fa fa-exclamation-triangle', 'class' => 'alert-danger', 'msg' => 'Sorry, the request has been expired.');
-			$this->session->set_flashdata('_oprs_login_msg', $array_msg);
-			redirect('oprs/login');
-			$this->session->unset_userdata('_oprs_login_msg');
-		} else {
-		
-			if ($action == 1) {
-				// accept
-				// get info reviewer
-				$output = $this->Login_model->get_reviewer_info($id);
-				foreach($output as $row){
-					$rev_username = $row->rev_email;
-					$rev_man_id = $row->rev_man_id;
-				}
-				if ($this->Login_model->authenticate_user($rev_username, 5)) {
+
+		$existing_reviewer = $this->User_model->check_existing_reviewer($id);
+			
+		if(count($existing_reviewer) > 0){
+
+			$output = $this->Login_model->check_reveiwer_status($id, $man_id);
+			
+			foreach ($output as $key => $row) {
+				$status = $row->rev_status;
+				// $response = $row->rev_date_respond;
+			}
+
+			if ($status == 9 || $status == 1) {
+				// determine if reviewer has clicked accept or decline already
+				$message = ($status == 1) ? 'accepted' : 'declined';
+				$array_msg = array('icon' => 'fa fa-exclamation-triangle', 'class' => 'alert-warning', 'msg' => 'Sorry, you have already ' . $message . ' the request.');
+				$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+				redirect('oprs/login');
+				$this->session->unset_userdata('_oprs_login_msg');
+			} else if ($status == 3) {
+				// accept or reject link expired
+				$array_msg = array('icon' => 'fa fa-exclamation-triangle', 'class' => 'alert-danger', 'msg' => 'Sorry, the request has been expired.');
+				$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+				redirect('oprs/login');
+				$this->session->unset_userdata('_oprs_login_msg');
+			}else{
+
+				if ($action == 1) {
+					// accept
+					// get info reviewer
+					foreach ($existing_reviewer as $key => $row) {
+						$rev_username = $row->usr_username;
+						$rev_password = $row->usr_password_copy;
+					}
+
+					save_log_oprs($id, 'accepted review request for', $man_id, 5);
+
 					$array_msg = array('icon' => 'fa fa-check-square', 'class' => 'alert-success', 'msg' => 'Thank you for accepting the review request. <br/><br/>
-					You already have a temporary account. Please use your
-					existing username and password to begin the review. You have <strong>' . $days . ' days</strong> to accomplish and submit the score/evaluation sheet.');
+					To begin with review, please login to your temporary account
+					with this username and password. <br/></br>
+					Username: <strong>' . $rev_username . '</strong><br/>
+					Password : <strong>' . $rev_password . '</strong><br/><br/>
+					Please check your email for more details. You have <strong>' . $days . ' days</strong> to accomplish and submit the score/evaluation sheet.');
+
+					// update reviewer
+					$revs['rev_status'] = $action;
+					$revs['rev_notif_status'] = 0;
+					$revs['rev_date_respond'] = date('Y-m-d H:i:s');
+					$where['rev_id'] = $id;
+					$where['rev_man_id'] = $man_id;
+					$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
+
+					// send toke for apprection mail to reviewer
+					$this->send_appreciation_msg($id, $rev_password, 5);
+
+					// add flag to tblscores
+					$post_scr['scr_man_id'] = $man_id;	
+					$post_scr['scr_man_rev_id'] = $id;
+					$post_scr['scr_status'] = 2;
+					$this->Review_model->save_review(array_filter($post_scr));
+					$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+					redirect('oprs/login');
+					$this->session->unset_userdata('_oprs_login_msg');
 				} else {
+					$rev_username = $this->Login_model->get_reviewer_info($id);
+					$this->decline_request($rev_username, $man_id, $id);
+
+					// decline
+					// update reviewer
+					$revs['rev_status'] = 9;
+					$revs['rev_date_respond'] = date('Y-m-d H:i:s');
+					$where['rev_id'] = $id;
+					$where['rev_man_id'] = $man_id;
+					$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
+					$array_msg = array('icon' => 'fa fa-times-circle', 'class' => 'alert-warning', 'msg' => 'Request declined.');
+					$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+					redirect('oprs/login');
+					$this->session->unset_userdata('_oprs_login_msg');
+				}
+			}
+		}else{
+			
+				if ($action == 1) {
+					// accept
+					// get info reviewer
+					$output = $this->Login_model->get_reviewer_info($id);
+					foreach($output as $row){
+						$rev_username = $row->rev_email;
+						$rev_man_id = $row->rev_man_id;
+					}
+				
 					$rev_password = 'nrcp' . rand(100, 1000);
 					$rev_password_hash = password_hash($rev_password, PASSWORD_BCRYPT);
 					// create temporary account
 					$temp['usr_username'] = $rev_username;
 					$temp['usr_password'] = $rev_password_hash;
+					$temp['usr_password_copy'] = $rev_password;
 					$temp['usr_desc'] = 'Reviewer';
 					$temp['usr_role'] = 5;
 					$temp['usr_sys_acc'] = 2;
@@ -289,53 +350,119 @@ class Login extends OPRS_Controller {
 					$this->User_model->create_temp_reviewer(array_filter($temp));
 					save_log_oprs($id, 'accepted review request for', $rev_man_id, 5);
 					$array_msg = array('icon' => 'fa fa-check-square', 'class' => 'alert-success', 'msg' => 'Thank you for accepting the review request. <br/><br/>
-					To begin with review, please login to your temporary account
+					To begin the review, please log in to your temporary account
 					with this username and password. <br/></br>
 					Username: <strong>' . $rev_username . '</strong><br/>
 					Password : <strong>' . $rev_password . '</strong><br/><br/>
 					Please check your email for more details. You have <strong>' . $days . ' days</strong> to accomplish and submit the score/evaluation sheet.');
-					// $this->send_password_copy($rev_username, $rev_password);
+					
+					// update reviewer
+					$revs['rev_status'] = $action;
+					$revs['rev_notif_status'] = 0;
+					$revs['rev_date_respond'] = date('Y-m-d H:i:s');
+					$where['rev_id'] = $id;
+					$where['rev_man_id'] = $man_id;
+					$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
+
+					// send toke for apprection mail to reviewer
+					$this->send_appreciation_msg($id, $rev_password, 5);
+					// $this->send_appreciation_msg($rev_username);
+
+					// add flag to tblscores
+					$post_scr['scr_man_id'] = $man_id;	
+					$post_scr['scr_man_rev_id'] = $id;
+					$post_scr['scr_status'] = 2;
+					$this->Review_model->save_review(array_filter($post_scr));
+					$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+					redirect('oprs/login');
+					$this->session->unset_userdata('_oprs_login_msg');
+				} else {
+					$rev_username = $this->Login_model->get_reviewer_info($id);
+					$this->decline_request($rev_username, $man_id, $id);
+
+					// decline
+					// update reviewer
+					$revs['rev_status'] = 9;
+					$revs['rev_date_respond'] = date('Y-m-d H:i:s');
+					$where['rev_id'] = $id;
+					$where['rev_man_id'] = $man_id;
+					$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
+					$array_msg = array('icon' => 'fa fa-times-circle', 'class' => 'alert-warning', 'msg' => 'Request declined.');
+					$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+					redirect('oprs/login');
+					$this->session->unset_userdata('_oprs_login_msg');
 				}
-
-				// Please take note of your username and password for your next login. You have <strong>' . $days . ' days</strong> to accomplish and submit the score/evaluation sheet.');
-				
-				// update reviewer
-				$revs['rev_status'] = $action;
-				$revs['rev_notif_status'] = 0;
-				$revs['rev_date_respond'] = date('Y-m-d H:i:s');
-				$where['rev_id'] = $id;
-				$where['rev_man_id'] = $man_id;
-				$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
-
-				// send toke for apprection mail to reviewer
-				$this->send_appreciation_msg($id, $rev_password);
-				// $this->send_appreciation_msg($rev_username);
-
-				// add flag to tblscores
-				$post_scr['scr_man_id'] = $man_id;
-				$post_scr['scr_man_rev_id'] = $id;
-				$post_scr['scr_status'] = 2;
-				$this->Review_model->save_review(array_filter($post_scr));
-				$this->session->set_flashdata('_oprs_login_msg', $array_msg);
-				redirect('oprs/login');
-				$this->session->unset_userdata('_oprs_login_msg');
-			} else {
-				$rev_username = $this->Login_model->get_reviewer_info($id);
-				$this->decline_request($rev_username, $man_id, $id);
-
-				// decline
-				// update reviewer
-				$revs['rev_status'] = '$action';
-				$revs['rev_date_respond'] = date('Y-m-d H:i:s');
-				$where['rev_id'] = $id;
-				$where['rev_man_id'] = $man_id;
-				$this->Manuscript_model->update_reviewer(array_filter($revs), $where);
-				$array_msg = array('icon' => 'fa fa-times-circle', 'class' => 'alert-warning', 'msg' => 'Request declined.');
-				$this->session->set_flashdata('_oprs_login_msg', $array_msg);
-				redirect('oprs/login');
-				$this->session->unset_userdata('_oprs_login_msg');
-			}
 		}
+
+
+	}
+
+	/**
+	 * Create temporary editor account if manuscript request accepted
+	 * 
+	 *
+	 * @param   int  $man_id  manuscript id
+	 * @param   int  $action  accept/decline
+	 * @param   int  $id      reviewer id
+	 * @param   int  $days    review duration
+	 *
+	 * @return  void
+	 */
+	public function editor($man_id, $action, $id, $days = null) {
+		// get editor info
+		$output = $this->Login_model->get_editor_info($id);
+		foreach($output as $row){
+			$edit_username = $row->edit_email;
+			$edit_man_id = $row->edit_man_id;
+		}
+		
+		if ($this->Login_model->authenticate_user($edit_username, 12)) {
+			// existing account	
+		} else {
+			$edit_password = 'nrcp' . rand(100, 1000);
+			$edit_password_hash = password_hash($edit_password, PASSWORD_BCRYPT);
+			// create temporary account
+			$temp['usr_username'] = $edit_username;
+			$temp['usr_password'] = $edit_password_hash;
+			$temp['usr_desc'] = 'Editor-in-Chief';
+			$temp['usr_role'] = 12;
+			$temp['usr_sys_acc'] = 2;
+			$temp['date_created'] = date('Y-m-d H:i:s');
+			$temp['usr_id'] = $id;
+			$this->User_model->create_temp_reviewer(array_filter($temp));
+			save_log_oprs($id, 'accepted review request for', $edit_man_id, 12);
+			$array_msg = array('icon' => 'fa fa-check-square', 'class' => 'alert-success', 'msg' => 'Thank you for accepting the review request. <br/><br/>
+			To begin with review, please login to your temporary account
+			with this username and password. <br/></br>
+			Username: <strong>' . $edit_username . '</strong><br/>
+			Password : <strong>' . $edit_password . '</strong>');
+
+
+			// update reviewer
+			$edits['edit_status'] = 1;
+			$edits['edit_notif_status'] = 0;
+			$edits['edit_date_respond'] = date('Y-m-d H:i:s');
+			$where['edit_id'] = $id;
+			$where['edit_man_id'] = $man_id;
+			$this->Manuscript_model->update_editor(array_filter($edits), $where);
+
+			// send toke for apprection mail to reviewer
+			$this->send_appreciation_msg($id, $edit_password,12);
+			// $this->send_appreciation_msg($rev_username);
+
+			// add flag to tblscores
+			// $post_scr['scr_man_id'] = $man_id;	
+			// $post_scr['scr_man_rev_id'] = $id;
+			// $post_scr['scr_status'] = 2;
+			// $this->Review_model->save_review(array_filter($post_scr));
+
+			
+
+		}
+
+		$this->session->set_flashdata('_oprs_login_msg', $array_msg);
+			redirect('oprs/login');
+			$this->session->unset_userdata('_oprs_login_msg');
 	}
 
 
@@ -350,7 +477,7 @@ class Login extends OPRS_Controller {
 	// public function send_password_copy($email, $pass) {
 	// 	$nameuser = 'eJournal Admin';
 	// 	$usergmail = 'nrcp.ejournal@gmail.com';
-	// 	$password = '<<NRCP!!ejournal>>';
+	// 	$password = 'fpzskheyxltsbvtg';
 	// 	$mail = new PHPMailer;
 	// 	$mail->isSMTP();
 	// 	$mail->Host = "smtp.gmail.com";
@@ -395,29 +522,14 @@ class Login extends OPRS_Controller {
 	 *
 	 * @return  void
 	 */
-	public function send_appreciation_msg($id, $rev_password) {
-		
-		$output = $this->Manuscript_model->get_reviewer_by_id($id);
-
-		foreach($output as $row){
-			$email = $row->rev_email;
-			$dear = $row->rev_name;
-			$man_id = $row->rev_man_id;
-		}
-
-		
-		// get manuscript info
-		$manus_info = $this->Manuscript_model->get_manus_for_email($man_id);
-		foreach ($manus_info as $key => $val) {
-			$man_pdf = $val->man_file;
-			$man_word = $val->man_word;
-		}
+	public function send_appreciation_msg($id, $rev_password, $role) {
 
 		$link = 'https://researchjournal.nrcp.dost.gov.ph/oprs/login';
-
-		$nameuser = 'eJournal Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+		
+		// setup email config	
 		$mail = new PHPMailer;
 		$mail->isSMTP();
 		$mail->Host = "smtp.gmail.com";
@@ -425,52 +537,138 @@ class Login extends OPRS_Controller {
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		$mail->AddBCC('gerardbalde15@gmail.com');
-		$mail->AddCC('lanie.manalo@nrcp.dost.gov.ph');
-		//$mail->AddBCC('nrcpeditorial2021@gmail.com');
-		// $mail->AddBCC('oed@nrcp.dost.gov.ph');
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+
+		if($role == 5){
+			// reviewer
+
+			$output = $this->Manuscript_model->get_reviewer_by_id($id);
+
+			foreach($output as $row){
+				$email = $row->rev_email;
+				$name = $row->rev_name;
+				$man_id = $row->rev_man_id;
+				$title = $row->rev_title;
+			}
+	
+			
+			// get email notification content
+			$email_contents = $this->Email_model->get_email_content(5);
+
+			// get manuscript info
+			$manus_info = $this->Manuscript_model->get_manus_for_email($man_id);
+			foreach ($manus_info as $key => $val) {
+				$man_pdf = $val->man_file;
+				$man_word = $val->man_word;
+			}
+
+			$nda = '/var/www/html/ejournal/assets/oprs/uploads/SAMPLE_NDA_NRCP.doc';
+			$mail->addAttachment($nda);
+			$word = '/var/www/html/ejournal/assets/oprs/uploads/manuscriptsdoc/' . $man_word;
+			$mail->addAttachment($word);
+			$pdf = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/' . $man_pdf;
+			$mail->addAttachment($pdf);
+		}else{
+			// editor
+
+			$output = $this->Manuscript_model->get_editor_by_id($id);
+
+			foreach($output as $row){
+				$email = $row->edit_email;
+				$name = $row->edit_name;
+				$title = $row->edit_title;
+				$man_id = $row->edit_man_id;
+			}
+	
+			
+			// get email notification content
+			$email_contents = $this->Email_model->get_email_content(11);
+		}
+
+	
+		
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+		    }else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+		    }else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+		    }else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+			
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+		
+		
+
 		$mail->AddAddress($email);
-		$nda = '/var/www/html/ejournal/assets/oprs/uploads/SAMPLE_NDA_NRCP.doc';
-		$mail->addAttachment($nda);
-		$word = '/var/www/html/ejournal/assets/oprs/uploads/manuscriptsdoc/' . $man_word;
-		$mail->addAttachment($word);
-		$pdf = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/' . $man_pdf;
-		$mail->addAttachment($pdf);
-		$mail->Subject = "Thank you for accepting";
-
-		$htmlBody = 'Dear ' . $dear . ', <br/><br/>' . 
-
-		'Thank you for accepting our invitation to be a reviewer. <br/><br/>' . 
-
-		'Please login to your temporary account: <br/><br/>' . 
-		'Username: <strong>' . $email . '</strong><br/>' .
-		'Password: <strong>' . $rev_password . '</strong><br/><br/>' .
+	
 		
-		'Click <a href="' . $link .'" target="_blank">' . $link .'</a> to login. <br/><br/><br/>'.
+		// replace reserved words
+		// redirection link
 
-		'Full text manuscript in PDF and Evaluation form will appear upon clicking "Start Review" button when you logged in. <br/><br/>' .
-
-
-		'Please see attached NDA and Full text manuscript.<br/><br/>'.
-
-
-		'Thank you. <br/><br/>
-
-		Managing Editor <br/>
-		NRCP Research Journal <br/><br/>
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
+			}
+		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
 		
-		** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-
-
-		$mail->Body = $htmlBody;
+		$dir = 'Click <a href="' . $link .'" target="_blank">' . $link .'</a> to login.';
+		$emailBody = str_replace('[FULL NAME]', $name, $email_contents);
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
+		$emailBody = str_replace('[EMAIL]', $email, $emailBody);
+		$emailBody = str_replace('[PASSWORD]', $rev_password, $emailBody);
+		$emailBody = str_replace('[LINK]', $dir, $emailBody);
+		
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -523,15 +721,63 @@ class Login extends OPRS_Controller {
 		foreach ($rev_info as $key => $val) {
 			$timeframe = $val->rev_timeframe;
 			$rev_timer = $val->rev_request_timer;
+			$rev_email = $val->rev_email;
 		}
 
-		// get managing editor
-		$man_edit = $this->Manuscript_model->get_man_editor_email($id);
-		 
-		// email
-		$nameuser = 'eJournal Admin';
-		$usergmail = 'nrcp.ejournal@gmail.com';
-		$password = '<<NRCP!!ejournal>>';
+		$output = $this->Manuscript_model->get_reviewer_by_id($rev_id);
+
+		foreach($output as $row){
+			$email = $row->rev_email;
+			$name = $row->rev_name;
+			$man_id = $row->rev_man_id;
+			$title = $row->rev_title;
+		}
+
+		// get email notification content
+		$email_contents = $this->Email_model->get_email_content(4);
+
+		// add cc/bcc
+		foreach($email_contents as $row){
+			$email_subject = $row->enc_subject;
+			$email_contents = $row->enc_content;
+
+			if( strpos($row->enc_cc, ',') !== false ) {
+				$email_cc = explode(',', $row->enc_cc);
+		    }else{
+				$email_cc = array();
+				array_push($email_cc, $row->enc_cc);
+			}
+
+			if( strpos($row->enc_bcc, ',') !== false ) {
+				$email_bcc = explode(',', $row->enc_bcc);
+		    }else{
+				$email_bcc = array();
+				array_push($email_bcc, $row->enc_bcc);
+			}
+
+			if( strpos($row->enc_user_group, ',') !== false ) {
+				$email_user_group = explode(',', $row->enc_user_group);
+		    }else{
+				$email_user_group = array();
+				array_push($email_user_group, $row->enc_user_group);
+			}
+			
+		}
+
+		// add exisiting email as cc
+		if(count($email_user_group) > 0){
+			$user_group_emails = array();
+			foreach($email_user_group as $grp){
+				$username = $this->Email_model->get_user_group_emails($grp);
+				array_push($user_group_emails, $username);
+			}
+		}
+
+		$sender = 'eJournal Admin';
+		$sender_email = 'nrcp.ejournal@gmail.com';
+		$password = 'fpzskheyxltsbvtg';
+
+		// setup email config	
 		$mail = new PHPMailer;
 		$mail->isSMTP();
 		$mail->Host = "smtp.gmail.com";
@@ -539,67 +785,42 @@ class Login extends OPRS_Controller {
 		$mail->SMTPAuth = true;
 		$mail->Port = 465;
 		// Enable SMTP authentication
-		$mail->Username = $usergmail;
+		$mail->Username = $sender_email;
 		// SMTP username
 		$mail->Password = $password;
 		// SMTP password
 		$mail->SMTPSecure = 'ssl';
 		// Enable encryption, 'ssl' also accepted
-		$mail->From = $usergmail;
-		$mail->FromName = $nameuser;
-		// $link_to = base_url() . 'oprs/login/reviewer';
-		// Server
-		// $file_to_attach = '/var/www/html/ejournal/assets/oprs/uploads/manuscripts/';
-		//Localhost
-		// $file_to_attach = $_SERVER['DOCUMENT_ROOT'].'/oprs/assets/uploads/manuscripts/';
-		$rev_c = 0;
-		$mail->AddBCC('gerardbalde15@gmail.com');
-		$mail->AddCC('lanie.manalo@nrcp.dost.gov.ph');
-		$mail->AddCC($man_edit);
-		//$mail->AddCC('nrcpeditorial2021@gmail.com');
-		// $mail->AddCC('oed@nrcp.dost.gov.ph');
-		$mail->AddAddress($email);
-		// $mail->addAttachment($file_to_attach . $file_name);
-		$reviewer_info = $this->Review_model->get_rev_info($rev_id);
-		if (strpos($rev_id, 'R') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span><br/>' .
-				$val->rev_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->rev_title . ' ' . $val->rev_name . '</strong></span> : <br/><br/>';
-				$exp = $val->rev_specialization;
-			}
-		} else if (strpos($rev_id, 'NM') !== false) {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_first_name . ' ' . $val->non_middle_name . ' ' . $val->non_last_name . '</strong></span><br/>' .
-				$val->non_affiliation . '<br/>' .
-				$val->non_contact . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->non_title . ' ' . $val->non_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->non_specialization;
-			}
-		} else {
-			foreach ($reviewer_info as $key => $val) {
-				$header = '<span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_first_name . ' ' . $val->pp_middle_name . ' ' . $val->pp_last_name . ' ' . $val->pp_extension . '</strong></span><br/>' .
-				$val->emp_pos_id . '<br/>' .
-				$val->emp_div_dept . '<br/>' .
-				$val->emp_ins_id . '<br/>' .
-				$val->emp_address . '<br/><br/>';
-				$dear = 'Dear <span style="text-transform:uppercase"><strong>' . $val->title_name . ' ' . $val->pp_last_name . '</strong></span> : <br/><br/>';
-				$exp = $val->mpr_specialization;
+		$mail->From = $sender_email;
+		$mail->FromName = $sender;
+		$mail->AddAddress($rev_email);
+
+		// add cc if any
+		if(count($email_cc) > 0){
+			foreach($email_cc as $cc){
+				$mail->AddCC($cc);
 			}
 		}
+		// add bcc if any
+		if(count($email_bcc) > 0){
+			foreach($email_bcc as $bcc){
+				$mail->AddBCC($bcc);
+			}
+		}
+		// add existing as cc
+		if(count($user_group_emails) > 0){
+			foreach($user_group_emails as $grp){
+				$mail->AddCC($grp);
+			}
+		}
+		
+		// replace reserved words
+		$emailBody = str_replace('[FULL NAME]', $name, $email_contents);
+		$emailBody = str_replace('[TITLE]', $title, $emailBody);
 
-		// email content
-		$htmlBody = date("F j, Y") . '<br/><br/>' .
-			$header .
-			$dear .
-			'We understand your busy schedule. We are looking forward to work with you in the future issues. <br/><br/>'.
-			'Thank you. <br/><br/>'.
-			'Very truly yours,<br/>'.
-			'Managing Editor<br/>'.
-			'NRCP Research Journal<br/><br/>'.
-			'** THIS IS AN AUTOMATED MESSAGE PLEASE DO NOT REPLY **';
-		$mail->Subject = "NRCP Journal Publication : Manuscript Request Declined";
-		$mail->Body = $htmlBody;
+		// send email
+		$mail->Subject = $email_subject;
+		$mail->Body = $emailBody;
 		$mail->IsHTML(true);
 		$mail->smtpConnect([
 			'ssl' => [
@@ -613,7 +834,6 @@ class Login extends OPRS_Controller {
 			echo 'Mailer Error: ' . $mail->ErrorInfo . '</br>';
 			exit;
 		}
-		$rev_c++;
 	}
 }
 

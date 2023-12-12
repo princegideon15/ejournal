@@ -20,7 +20,36 @@ var fn_clt_email; //feedback client email
 
 $(document).ready(function()
 {
+
+
+  // $('#mbsModal').modal('toggle');
+  // $('#defaultCheck2').on('click', function(){
+    
+  //   $(document).scrollTop($(this).parent().next().offset().top);
+  //   // $(this).parent().next() // this is the next div container.
+  //   return false; // prevent anchor
+  // });
+
+  // $("input[type=radio]").on('change', function() {
+  //   $(document).scrollTop($(this).parent().next().offset().top);
+  //   // $(this).parent().next() // this is the next div container.
+  //   return false; // prevent anchor
+  
+  // });
+
   $('body').tooltip({ selector: '[data-toggle=tooltip]' });
+
+  $('input:radio[name="svc_fdbk_q_answer[1]"]').on('change',function(){
+
+      if (this.checked) {  
+        if($(this).val() == 6){
+          $('#svc_fdbk_q_other_answer1').removeAttr('disabled');
+          
+        }else{
+          $('#svc_fdbk_q_other_answer1').attr('disabled','disabled');
+        }
+      }
+  });
 
 
   // trigger auto click on previously clicked side navigation after page reload
@@ -110,6 +139,19 @@ $(document).ready(function()
             required: true,
             email:true,
         },
+        cite_sex: {
+            required: true,
+        },
+        cite_affiliation: {
+            required: true,
+            minlength: 2,
+        },
+        cite_country: {
+            required: true,
+        },
+        cite_title: {
+            required: true,
+        }
     } ,
     submitHandler: function() {
 
@@ -129,7 +171,8 @@ $(document).ready(function()
         processData : false,
         type : 'POST',
         success : function(data,textStatus,jqXHR){
-             fb_clt_id = data;
+             fb_clt_id = parseInt(data);
+             
              $('#form_citation')[0].reset();
              $('#apa_format').val(unescape(apa_format));
         }
@@ -141,7 +184,11 @@ $(document).ready(function()
 });
 
 $('#citationModal .close').click(function(){
-  verify_citation(fb_clt_id);
+  if ($('#apa_format').val() == ''){
+    $('#citationModal').modal('toggle');
+  }else{
+    verify_citation(fb_clt_id,2);
+  }
 });
 
   // download pdf with validations for clients
@@ -229,7 +276,6 @@ $('#citationModal .close').click(function(){
 
                                     fb_clt_id = parseInt(data);
                        
-
                                     $('#form-client').remove();
 
                                     // $('#client_modal').modal('toggle');
@@ -267,8 +313,8 @@ $('#citationModal .close').click(function(){
       {
         var keyword = $(this).val();
         var filter  = $('#search_filter').val();
-        // window.open(base_url + "client/Ejournal/search/"+filter+"/"+encodeURIComponent(keyword));
-        window.open(base_url + "client/Ejournal/search/"+filter+"/"+escape(keyword));
+        // window.open(base_url + "client/ejournal/search/"+filter+"/"+encodeURIComponent(keyword));
+        window.open(base_url + "client/ejournal/search/"+filter+"/"+ keyword.replace(/ /g, '+'));
       }
     }
   });
@@ -282,8 +328,8 @@ $('#citationModal .close').click(function(){
       {
         var keyword = $(this).val();
         var filter  = $('#search_filter2').val();
-        // var url     = base_url + "client/Ejournal/search/"+filter+"/"+encodeURIComponent(keyword);
-        var url     = base_url + "client/ejournal/search/"+filter+"/"+escape(keyword);
+        // var url     = base_url + "client/ejournal/search/"+filter+"/"+encodeURIComponent(keyword);
+        var url     = base_url + "client/ejournal/search/"+filter+"/"+ keyword.replace(/ /g, '+');
         window.location.replace(url);
       }
     }
@@ -323,9 +369,9 @@ $('#citationModal .close').click(function(){
   });
 
   // set editableselect effects to slide
-  $('#clt_country').editableSelect({ effects: 'slide' });
+  $('#clt_country, #cite_country').editableSelect({ effects: 'slide' });
   
-  $('#clt_country').val('Philippines');
+  $('#clt_country, #cite_country').val('Philippines');
 
   // show larger image
   $(document).on('click', '#viy_photo', function()
@@ -339,7 +385,8 @@ $('#citationModal .close').click(function(){
   { 
       $('#client_modal').modal('toggle');
     $('#feedbackModal').modal('toggle');
-    verify_feedback(fb_clt_id);
+    verify_feedback(fb_clt_id, 1);
+
   });
 
   $('input:radio[name="fb_rate_ui"]').change(
@@ -418,7 +465,7 @@ function get_articles(id)
 
     $.ajax({
       type:"POST",
-      url: base_url + "client/Ejournal/get_articles/"+id,
+      url: base_url + "client/ejournal/get_articles/"+id,
       dataType:"json",
       crossDomain: true,
       success:
@@ -448,12 +495,12 @@ function get_articles(id)
 
                     html = '<div class="list-group-item">'+
                             '<div class="row"><div class="col-md-11"><div class="d-flex w-100 justify-content-between">'+
-                            '<h5 class="mb-1 text-primary">'+val.art_title+'</h5>'+
-                           '</div>By ';
+                            '<h5 class="mb-1 text-dark">'+val.art_title+'</h5>'+
+                           '</div>By: ';
                                  
                     var i = 0;
                     var aut_cit = [];
-               
+                    var separator = '';
 
                     $.each(coa_array, function(k, v)
                     {
@@ -522,23 +569,28 @@ function get_articles(id)
                       var final;
 
                     
-                    if(i > 1)
-                    {
-                      if(i == coa_array.length)
+                      if(i > 1)
                       {
-                        final = ' & ' + lastname + ', ' + initial;
-                      }
-                      else
-                      {
+                        if(i == coa_array.length)
+                        {
+                          final = ' & ' + lastname + ', ' + initial;
+                        }
+                        else
+                        {
+                          final = lastname + ', ' + initial;
+                        }
+                      }else{
                         final = lastname + ', ' + initial;
                       }
-                    }else{
-                      final = lastname + ', ' + initial;
-                    }
                 
                       aut_cit.push(final);
-                   
-                      html += '<a href="javascript:void(0);" class="mb-1 text-dark text-capitalize" onclick="author_details(\''+val.art_jor_id+'\',\''+v+'\');">'+v+'</a>; ';
+
+
+                     if( i < coa_array.length) { separator = ' | '; }else{ separator = '';}
+
+                      html += '<a href="javascript:void(0);" class="mb-1 text-primary text-capitalize" onclick="author_details(\''+val.art_jor_id+'\',\''+v+'\');">'+v+'</a>' + separator;
+
+                     
                     });
                  
                     var title_cit = (val.art_title).toLowerCase();
@@ -546,24 +598,24 @@ function get_articles(id)
 
                     cite = aut_cit + ' ('+ val.art_year +'). ' + final_title_cit + '. NRCP Research Journal, Volume ' + val.jor_volume + ', ' + issue + ', ' + val.art_page;
 
-                    html +=  "<br/><small><strong>Keywords:</strong> " + click_keyword(val.art_keywords) + "</small><br/> \
+                    html +=  "<br/><small>Keywords: " + click_keyword(val.art_keywords) + "</small><br/> \
                               \
-                              <div class='mb-2'><span class='badge badge badge-secondary mr-1' data-toggle='tooltip' data-placement='top' title='Full Text Downloads'> \
+                              <div class='mb-2'> \
+                              <span class='badge badge badge-light' data-toggle='tooltip' data-placement='top' title='File Size'> \
+                              <span class='oi oi-paperclip'></span> " + file_size(val.art_id) + "</span> \<span class='badge badge badge-light mr-1' data-toggle='tooltip' data-placement='top' title='Full Text Downloads'> \
                               <span class='oi oi-data-transfer-download'></span>" + clients_count(val.art_id) + "</span> \
-                              <span class='badge badge badge-secondary mr-1' data-toggle='tooltip' data-placement='top' title='Abstract Hits'> \
+                              <span class='badge badge badge-light mr-1' data-toggle='tooltip' data-placement='top' title='Abstract Hits'> \
                               <span class='oi oi-eye'></span> " + hits_count(val.art_id) + "</span> \
-                              <span class='badge badge badge-secondary' data-toggle='tooltip' data-placement='top' title='File Size'> \
-                              <span class='oi oi-paperclip'></span> " + file_size(val.art_id) + "</span> \
-                              <span class='badge badge badge-secondary mr-1' data-toggle='tooltip' data-placement='top' title='Cited'> \
+                              <span class='badge badge badge-light mr-1' data-toggle='tooltip' data-placement='top' title='Cited'> \
                               <span class='oi oi-pin'></span>" + cite_count(val.art_id) + "</span></div> \
-                              <div class='btn-group' role='group'> \
+                              <div class='btn-group mt-5' role='group'> \
                               \
-                              <a data-toggle='modal' data-target='#abstract_modal' class='btn btn-sm btn-outline-primary'  onclick='get_download_id(\"" + val.art_id + "\",\"hits\",\"" + val.art_abstract_file + "\")' href='javscript:void(0);' role='button'> \
-                                <span class='oi oi-eye'></span> View Abstract</a> \
-                              <a data-toggle='modal' data-target='#client_modal' class='btn btn-sm btn-outline-danger' href='javascript:void(0);' role='button' onclick='get_download_id(\"" + val.art_id + "\")'> \
-                                <span class='oi oi-file'></span> Request Full Text PDF</a> \
-                              <a data-toggle='modal' data-target='#citationModal' class='btn btn-sm btn-outline-dark' href='javascript:void(0);' role='button' onclick='get_citee_info(\"" + escape(cite) + "\",\"" + val.art_id + "\")'> \
-                                <span class='oi oi-pin'></span> Cite This Paper</a> \
+                              <a data-toggle='modal' data-target='#client_modal' class='btn btn-sm btn-primary mr-2 pr-3 pl-3' href='javascript:void(0);' role='button' onclick='get_download_id(\"" + val.art_id + "\")'> \
+                                <span class='oi oi-file'></span> Download</a> \
+                              <a data-toggle='modal' data-target='#abstract_modal' class='btn btn-sm btn-outline-dark mr-2 pr-3 pl-3'  onclick='get_download_id(\"" + val.art_id + "\",\"hits\",\"" + val.art_abstract_file + "\")' href='javscript:void(0);' role='button'> \
+                                <span class='oi oi-eye'></span> Abstract</a> \
+                              <a data-toggle='modal' data-target='#citationModal' class='btn btn-sm btn-outline-dark mr-2 pr-3 pl-3' href='javascript:void(0);' role='button' onclick='get_citee_info(\"" + cite.replace(/ /g, '+') + "\",\"" + val.art_id + "\")'> \
+                                <span class='oi oi-document'></span> Cite</a> \
                               </div> \
                               </div></div></div>";
                              
@@ -593,7 +645,7 @@ function click_keyword(keyword)
       var array = string.split(', ');
       var key  = '';
       for (i = 0; i < array.length; i++) {
-        key += '<a class="text-dark" href="'+ base_url +'client/Ejournal/search/3/'+array[i]+'" target="_blank">'+array[i]+'</a>; ';
+        key += '<a class="text-primary" href="'+ base_url +'client/ejournal/search/3/'+array[i].replace( / /g, '+')+'" target="_blank">'+array[i]+'</a>; ';
       }
 
       return key;
@@ -613,7 +665,7 @@ function viy(id)
 {
   $.ajax({
     type:"POST",
-    url: base_url + "client/Ejournal/get_journal/"+id,
+    url: base_url + "client/ejournal/get_journal/"+id,
     dataType:"json",
     crossDomain: true,
     success:
@@ -660,7 +712,7 @@ function get_download_id(id, flag=null, file=null)
     $('#abstract_view').replaceWith($('#abstract_view').clone().attr('src',base_url+"assets/uploads/abstract/"+file+'#toolbar=0&navpanes=0&scrollbar=0'));
     $.ajax({
       type:"POST",
-      url: base_url + "client/Ejournal/abstract_hits/"+id,
+      url: base_url + "client/ejournal/abstract_hits/"+id,
       async: false
     });
   }
@@ -670,7 +722,7 @@ function get_download_id(id, flag=null, file=null)
     // $('#client_modal').modal('toggle');
     // $.ajax({
     //   type:"POST",
-    //   url: base_url + "client/Ejournal/abstract_hits/"+id,
+    //   url: base_url + "client/ejournal/abstract_hits/"+id,
     //   async: false
     // });
   }
@@ -687,7 +739,7 @@ function clients_count(id)
 {
    var jqXHR = $.ajax({
                         type:"GET",
-                        url: base_url + "client/Ejournal/client_count/"+id,
+                        url: base_url + "client/ejournal/client_count/"+id,
                         async:false
                      });
 
@@ -705,7 +757,7 @@ function hits_count(id)
 {
    var jqXHR = $.ajax({
                         type:"GET",
-                        url: base_url + "client/Ejournal/hits_count/"+id,
+                        url: base_url + "client/ejournal/hits_count/"+id,
                         async:false
                      });
 
@@ -723,7 +775,7 @@ function cite_count(id)
 {
    var jqXHR = $.ajax({
                         type:"GET",
-                        url: base_url + "client/Ejournal/cite_count/"+id,
+                        url: base_url + "client/ejournal/cite_count/"+id,
                         async:false
                      });
 
@@ -741,11 +793,16 @@ function file_size(id)
 {
   var jqXHR = $.ajax({
                       type:"GET",
-                      url: base_url + "client/Ejournal/file_size/"+id,
+                      url: base_url + "client/ejournal/file_size/"+id,
                       async:false
                     });
 
+                    if(jqXHR != ''){
+    return 'No file found.';
+                    }else{
     return jqXHR.responseText;
+                    }
+
 }
 
 /**
@@ -761,7 +818,7 @@ function get_coauthors(id)
 
   $.ajax({
           type:"POST",
-          url: base_url + "client/Ejournal/get_coauthors/"+id,
+          url: base_url + "client/ejournal/get_coauthors/"+id,
           dataType:"json",
           async: false,
           crossDomain: true,
@@ -808,9 +865,9 @@ function top_article(id, flag, file)
  */
 function click_top_search(keyword, filter)
 {
-  $('#search_ejournal2').val(decodeURIComponent(keyword));
+  $('#search_ejournal2').val(keyword.replace('+', / /g));
   $('#search_filter2').val(filter);
-  var url = base_url + "client/Ejournal/search/"+filter+"/"+keyword;
+  var url = base_url + "client/ejournal/search/"+filter+"/"+keyword;
   window.location.replace(url);
 }
 
@@ -829,42 +886,52 @@ function author_details(id, name)
 
   $.ajax({
           type:"POST",
-          url: base_url + "client/Ejournal/get_acoa_details/"+id+"/"+escape(name),
+          url: base_url + "client/ejournal/get_acoa_details/"+id+"/"+ name.replace(/ /g, '+'),
           dataType:"json",
           crossDomain: true,
           success:
                   function(data)
                   {
-                    $('#acoa_details_modal small').empty();
+                    $('#acoa_details_modal .modal-body').empty();
                     var list = '';
+                    var aff = '';
+                    var mail = '';
 
-                    $.each(data.authors,function(key, val)
-                    {
-                      var get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
-                      var get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
-                      var aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
-                      var mail      = (get_mail == '' || get_mail == null)  ? 'Email unavailable' : get_mail;
 
-                      $('#acoa_details_modal small').html('<span class="oi oi-flag"></span> '+aff+ '<br/>'+
-                                                          '<span class="oi oi-envelope-closed"></span> '+mail);
+                      $.each(data.authors,function(key, val)
+                      {
+                         get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
+                         get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
+                        //  aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
+                        //  mail      = (get_mail == '' || get_mail == null || get_mail.length <= 1)  ? 'Email unavailable' : get_mail;
+                         aff       = (typeof(val.art_affiliation) != "undefined" && val.art_affiliation !== null) ? val.art_affiliation : 'No Affiliation';
+                         mail      = (typeof val.art_email !== 'undefined' && val.art_email)  ?  val.art_email : 'No Email Address';
 
-                      list += '<li><a href="javascript:void(0);" class="text-dark" onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
-                    });
+                        $('#acoa_details_modal .modal-body').html('<span class="oi oi-flag text-secondary mr-2"></span> '+aff+ '<br/>'+
+                                                            '<span class="oi oi-envelope-closed text-secondary mr-2"></span> '+mail);
 
-                    $.each(data.coas, function(key, val)
-                    {
-                      var get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
-                      var get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
-                      var aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
-                      var mail      = (get_mail == '' || get_mail == null) ? 'Email unavailable' : get_mail;
+                        // list += '<li><a href="javascript:void(0);" class="text-primary" onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
+                      });
+                
 
-                      $('#acoa_details_modal small').html('<span class="oi oi-flag"></span> '+aff+ '<br/>'+
-                                                          '<span class="oi oi-envelope-closed"></span> '+mail);
+                      $.each(data.coas, function(key, val)
+                      {
+                        //  get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
+                        //  get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
+                        //  aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
+                        //  mail      = (get_mail == '' || get_mail == null) ? 'Email unavailable' : get_mail;
+                         aff       = (typeof(val.coa_affiliation) != "undefined" && val.coa_affiliation !== null)  ? val.coa_affiliation : 'No ffiliation';
+                         mail      = (typeof(val.coa_email) != "undefined" && val.coa_email !== null)  ?  val.coa_email : 'No Email Address';
 
-                      list += '<li><a href="javascript:void(0);" class="text-dark"  onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
-                    });
+                        $('#acoa_details_modal .modal-body').html('<span class="oi oi-flag text-secondary mr-2"></span> '+aff+ '<br/>'+
+                                                            '<span class="oi oi-envelope-closed text-secondary mr-2"></span> '+mail);
 
-                    $('#acoa_details_modal p').html('<hr><p>Related Articles</p><ol class="pl-0 ml-3">'+list+'</ol');
+                        // list += '<li><a href="javascript:void(0);" class="text-primary"  onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
+                      });
+
+
+                    $('#acoa_details_modal .modal-footer').html('<a href="' + base_url + "client/ejournal/search/2/"+ name.replace(/ /g, '+') + '" type="button" class="btn btn-link text-primary font-weight-bold w-100">Show related articles</a>');
+                    // $('#acoa_details_modal p').html('<hr><p>Related Articles</p><ol class="pl-0 ml-3">'+list+'</ol');
                     }
         });
 }
@@ -884,44 +951,59 @@ function author_details_search(id, name)
 
   $.ajax({
           type:"POST",
-          url: base_url + "client/Ejournal/get_acoa_details/"+id+"/"+escape(name),
+          url: base_url + "client/ejournal/get_acoa_details/"+id+"/"+ name.replace(/ /g, '+'),
           dataType:"json",
           crossDomain: true,
           success:
                   function(data)
                   {
-                    $('#acoa_details_modal_search small').empty();
+                    $('#acoa_details_modal_search .modal-body').empty();
                     var list = '';
+                    var aff = '';
+                    var mail = '';
 
-                    $.each(data.authors,function(key, val)
-                    {
-                      var get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
-                      var get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
-                      var aff       = (get_aff == '') ? 'No affiliation'  : get_aff;
-                      var mail      = (get_mail == '') ? 'No email' : get_mail;
 
-                      $('#acoa_details_modal_search small').html('<span class="oi oi-flag"></span> '+aff+ '<br/>'+
-                                                                 '<span class="oi oi-envelope-closed"></span> '+mail);
+                    // if(data.authors.length > 0){
+                      $.each(data.authors,function(key, val)
+                      {
+                        //  get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
+                        //  get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
+                        //  aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
+                        //  mail      = (get_mail == '' || get_mail == null)  ? 'Email unavailable' : get_mail;
+                         aff       = (typeof(val.art_affiliation) != "undefined" && val.art_affiliation !== null) ? val.art_affiliation : 'No Affiliation';
+                         mail      = (typeof(val.art_email) != "undefined" && val.art_email !== null)  ?  val.art_email : 'No Email Address';
 
-                      list += '<li><a href="javascript:void(0);" class="text-dark" onclick="get_download_id(\''+val.art_id+'\',\'hits\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
-                    });
+                        $('#acoa_details_modal_search .modal-body').html('<span class="oi oi-flag text-secondary mr-2"></span> '+aff+ '<br/>'+
+                                                            '<span class="oi oi-envelope-closed text-secondary mr-2"></span> '+mail);
 
-                    $.each(data.coas,function(key,val)
-                    {
-                      var get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
-                      var get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
-                      var aff       = (get_aff == '') ? 'No affiliation'  : get_aff;
-                      var mail      = (get_mail == '') ? 'No email' : get_mail;
+                        // list += '<li><a href="javascript:void(0);" class="text-primary" onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
+                      });
+                    // }
 
-                      $('#acoa_details_modal_search small').html('<span class="oi oi-flag"></span> '+aff+ '<br/>'+
-                                                                 '<span class="oi oi-envelope-closed"></span> '+mail);
+                    // if(data.coas.length > 0){
+                      $.each(data.coas, function(key, val)
+                      {
+                        //  get_aff   = ('coa_affiliation' in val) ? val.coa_affiliation : val.art_affiliation ;
+                        //  get_mail  = ('coa_email' in val) ? val.coa_email : val.art_email;
+                        //  aff       = (get_aff == '' || get_aff == null) ? 'Affiliation unavailable'  : get_aff;
+                        //  mail      = (get_mail == '' || get_mail == null) ? 'Email unavailable' : get_mail;
+                         aff       = (typeof(val.coa_affiliation) != "undefined" && val.coa_affiliation !== null)  ? val.coa_affiliation : 'No ffiliation';
+                         mail      = (typeof(val.coa_email) != "undefined" && val.coa_email !== null)  ?  val.coa_email : 'No Email Address';
 
-                      list += '<li><a href="javascript:void(0);" class="text-dark"  onclick="get_download_id(\''+val.art_id+'\',\'hits\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
-                    });
+                        $('#acoa_details_modal_search .modal-body').html('<span class="oi oi-flag text-secondary mr-2"></span> '+aff+ '<br/>'+
+                                                            '<span class="oi oi-envelope-closed text-secondary mr-2"></span> '+mail);
 
-                    $('#acoa_details_modal_search p').html('<hr><p>Related Articles</p><ol class="pl-0 ml-3">'+list+'</ol');
-                  }
+                        // list += '<li><a href="javascript:void(0);" class="text-primary"  onclick="top_article(\''+val.art_id+'\',\'top\',\''+val.art_abstract_file+'\')">'+val.art_title+'</a></li>';
+                      });
+                    // }
+
+
+                    $('#acoa_details_modal_search .modal-footer').html('<a href="' + base_url + "client/ejournal/search/2/"+ name.replace(/ /g, '+') + '" type="button" class="btn btn-link text-primary font-weight-bold w-100">Show related articles</a>');
+                    // $('#acoa_details_modal p').html('<hr><p>Related Articles</p><ol class="pl-0 ml-3">'+list+'</ol');
+                    }
         });
+
+ 
 }
 
 function get_citee_info(value,id) {
@@ -929,6 +1011,7 @@ function get_citee_info(value,id) {
   $('#citationModal p').val('Please provide us with your Full Name and Email Address. Then click SUBMIT to show the APA citation');
   $('#form_citation').show();
   $('#apa_format').val('');
+  $('#cite_value').val(value);
   apa_format = value;
   apa_id = id;
 
@@ -952,19 +1035,21 @@ function copyToClipboard(values)
   $('.copy_citation').attr('data-original-title', "Click to copy & paste");
 }
 
-function verify_citation(fb_clt_id){
+function verify_citation(fb_clt_id, source){
 
 
     $('#feedbackModal').modal('toggle');
     $('#feedbackModal #fb_usr_id').val(fb_clt_id);
+    $('#fb_source').val(source);
 
 }
 
-function verify_feedback(fb_clt_id){
+function verify_feedback(fb_clt_id, source){
 
   $('#client_modal').modal('toggle');
-    $('#feedbackModal').modal('toggle');
-    $('#feedbackModal #fb_usr_id').val(fb_clt_id);
+  $('#feedbackModal').modal('toggle');
+  $('#feedbackModal #fb_usr_id').val(fb_clt_id);
+  $('#fb_source').val(source);
 
   // var jqXHR = $.ajax({
   //     type: "GET",
@@ -986,3 +1071,13 @@ function verify_feedback(fb_clt_id){
   // }
 }
 
+function copyCitationToClipboard(element){
+
+  $(element).select();
+
+  var $temp = $("<input>");
+  $("body").append($temp);
+  $temp.val($(element).text()).select();
+  document.execCommand("copy");
+  $temp.remove();
+}

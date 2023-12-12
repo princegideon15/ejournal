@@ -50,9 +50,8 @@ defined('BASEPATH') OR exit('No direct script access allowed');
 |		my-controller/my-method	-> my_controller/my_method
  */
 $route['default_controller'] = 'client/ejournal';
-
-$route['404_override'] = '';
 $route['translate_uri_dashes'] = FALSE;
 
 // Routes for each modules
 $route['admin'] = "admin/login/index";
+

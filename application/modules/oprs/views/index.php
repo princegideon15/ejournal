@@ -251,7 +251,7 @@
           </div>
         </div>
         <div class="col-xl-3 col-sm-6 mb-3">
-          <div class="card border-dark o-hidden h-100 rounded">
+          <div class="card border border-dark o-hidden h-100 rounded">
             <div class="card-body">
               <div class="card-body-icon">
                 <i class="fas fa-user-friends"></i>
@@ -268,7 +268,7 @@
           </div>
         </div>
         <div class="col-xl-3 col-sm-6 mb-3">
-          <div class="card border-dark o-hidden h-100 rounded">
+          <div class="card border border-dark o-hidden h-100 rounded">
             <div class="card-body">
               <div class="card-body-icon">
                 <i class="far fa-check-circle"></i>
@@ -383,9 +383,11 @@
   <!-- Sticky Footer -->
   <footer class="sticky-footer">
     <div class="container my-auto">
-      <div class="copyright text-center my-auto">
-        <span>Copyright © Your Website 2019</span>
+      <!-- Copyright -->
+      <div class="footer-copyright text-center" >&copy; 2018 Copyright ResearchJournal, All Rights Reserved
+      <small class="text-muted d-block mt-1">Currently v2.1.85</small>
       </div>
+      <!-- Copyright -->
     </div>
   </footer>
 </div>
@@ -396,6 +398,7 @@
 <a class="scroll-to-top rounded" href="#page-top">
 <i class="fas fa-angle-up"></i>
 </a>
+
 <!-- PROCESS MANUSCRIPT -->
 <div class="modal fade" id="processModal" tabindex="-1" role="dialog" aria-labelledby="processModal" aria-hidden="true" style="z-index:9999">
 <div class="modal-dialog modal-lg" role="document" style="max-width:90%">

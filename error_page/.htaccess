@@ -1,0 +1,4 @@
+<IfModule mod_rewrite.c>
+Allow override
+Allow from all
+</IfModule>

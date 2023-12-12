@@ -31,3 +31,11 @@ RewriteRule ^(.*)$ index.php?/$1 [L]
 
 ErrorDocument 404 /index.php
 </IfModule>
+
+<IfModule mod_alias.c>
+# If we don't have mod_rewrite installed, all 404's
+# can be sent to index.php, and everything works as normal.
+# Submitted by: ElliotHaughin
+
+ErrorDocument 403 /page_not_found.html
+</IfModule>

@@ -17,16 +17,22 @@ Rest assured that your responses will be treated with the utmost confidentiality
                     In submitting this form, I agree to my details being used for the purposes of gathering feedback and comments on the services of DOST-NRCP. The information will only be accessed by authorized personnel of DOST-NRCP. I understand my data will be held securely and will not be distributed to third parties. I have a right to change or access my information. I understand that when this information is no longer required for this purpose, DOST-NRCP procedure will be followed to dispose of my data.
                     </label>
                 </div>
+                <div class="form-check pt-3"> 
+                    <input class="form-check-input" type="checkbox" value="" id="defaultCheck2" required>
+                    <label class="form-check-label" for="defaultCheck2">
+                    I have read and understood the guidelines on research grant, membership application, theis and dissertation manuscript grant, or NRCP Citizen's Charter.
+                    </label>
+                </div>
                 <br/>
                 <p class="text-danger">Required *</p>
                 <hr/>
                 <?php foreach($questions as $q){
-                     echo '<div class="pb-3"> 
+                     echo '<div class="pb-3 first"> 
                            <p class="mb-2 font-weight-bold">'. $q->svc_fdbk_q_order . '. ' . $q->svc_fdbk_q . ' <span class="text-danger">*</span></p>';
 
                      if($q->svc_fdbk_q_choices != ''){   
                          
-                        if($q->svc_fdbk_q_id == 1){
+                        if($q->svc_fdbk_q_order == 1){
 
                             echo '<input type="hidden" name="svc_fdbk_q_id[]" value="'. $q->svc_fdbk_q_id .'">';
                             foreach($affiliations as $a){
@@ -36,7 +42,10 @@ Rest assured that your responses will be treated with the utmost confidentiality
                                 <label class="form-check-label" for="aff'. $a->aff_type_id .'">'. $a->aff_type .'</label>
                                 </div>';
                              }
-                        }else if($q->svc_fdbk_q_id == 2){
+
+                             echo '<input type="text" class="form-control w-50" id="svc_fdbk_q_other_answer'. $q->svc_fdbk_q_order  .'" name="svc_fdbk_q_other_answer['. $q->svc_fdbk_q_order .']" placeholder="Please specify" disabled required>';
+
+                        }else if($q->svc_fdbk_q_order == 2){
                             echo '<input type="hidden" name="svc_fdbk_q_id[]" value="'. $q->svc_fdbk_q_id .'">';
                             foreach($services as $s){
 
@@ -48,15 +57,27 @@ Rest assured that your responses will be treated with the utmost confidentiality
                                 </div>';
                              }
                         }else{
-                            
+                            $i = 0;
+                            $options = explode(',', $q->svc_fdbk_q_choices);
+                            // echo json_encode($options);
+                            // rsort($options);
+                            // echo json_encode($options);
+
                             echo '<input type="hidden" name="svc_fdbk_q_id[]" value="'. $q->svc_fdbk_q_id .'">';
-                            foreach($choices as $c){
                             
-                                echo '<div class="form-check">
-                                <input class="form-check-input" type="radio" name="svc_fdbk_q_answer['. $q->svc_fdbk_q_order .']" id="q'. $q->svc_fdbk_q_order .'_'. $c->svc_fdbk_rating_id .'" value="'. $c->svc_fdbk_rating_id .'" required>
-                                <label class="form-check-label" for="q'. $q->svc_fdbk_q_order .'_'. $c->svc_fdbk_rating_id .'">'. $c->svc_fdbk_rating .'</label>
-                                </div>';
-                             }
+                            // if($i < count($options)){
+                                foreach($choices as $c){
+
+                                    if($i != count($options))
+                                    if($options[$i] == $c->svc_fdbk_rating_id){
+                                        echo '<div class="form-check">
+                                        <input class="form-check-input" type="radio" name="svc_fdbk_q_answer['. $q->svc_fdbk_q_order .']" id="q'. $q->svc_fdbk_q_id .'_'. $c->svc_fdbk_rating_id .'" value="'. $c->svc_fdbk_rating_id .'" required>
+                                        <label class="form-check-label" for="q'. $q->svc_fdbk_q_id .'_'. $c->svc_fdbk_rating_id .'">'. $c->svc_fdbk_rating .'</label>
+                                        </div>';
+    
+                                        $i++;
+                                    } 
+                                }
                         }
                      }else{
                            echo '<input type="hidden" name="svc_fdbk_q_id[]" value="'. $q->svc_fdbk_q_id .'">';

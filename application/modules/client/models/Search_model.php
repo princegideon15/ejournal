@@ -46,7 +46,7 @@ class Search_model extends CI_Model {
             $where = 'art_keywords';
         }
 
-        $this->db->select('a.*, j.jor_volume, j.jor_issue');
+        $this->db->select('a.*, j.jor_volume, j.jor_issue, jor_issn');
         $this->db->from($this->articles.' a');
         $this->db->join($this->journals.' j','a.art_jor_id = j.jor_id');
         $this->db->like($where, str_replace("%20", " ", $keyword), 'both');
@@ -55,7 +55,7 @@ class Search_model extends CI_Model {
         if($filter == 2)
         {   
             $result2 = $query->result();
-            $this->db->select('a.*, j.jor_volume, j.jor_issue, c.*');
+            $this->db->select('a.*, j.jor_volume, j.jor_issue, jor_issn, c.*');
             $this->db->from($this->articles.' a');
             $this->db->join($this->coauthors.' c', 'a.art_id = c.coa_art_id');
             $this->db->join($this->journals.' j','a.art_jor_id = j.jor_id');
